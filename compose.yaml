@@ -1,0 +1,27 @@
+# Docker Compose configuration for ThesisHub.
+# Defines the PostgreSQL database used during development.
+
+services:
+  db:
+    # Official PostgreSQL Docker image, version 17.
+    image: postgres:17
+
+    # Restart the database unless we explicitly stop it.
+    restart: unless-stopped
+
+    # Load local database credentials from an ignored file.
+    env_file:
+      - ./server/.env
+
+    # Make PostgreSQL accessible only from this computer.
+    # 5432 is PostgreSQL's default port.
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    # Preserve database data when the container is restarted.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+# Docker manages this persistent storage volume.
+volumes:
+  postgres_data:
