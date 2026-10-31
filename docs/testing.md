@@ -90,3 +90,19 @@ Additional negative cases are documented for future testing.
 - Replace manual checks with automated integration tests.
 - Use an isolated testing database.
 - Run tests automatically in CI.
+
+
+## React Authentication UI — Manual Tests
+
+All seven browser tests passed:
+
+- [x] Registration creates a new account
+- [x] Duplicate registration displays an error
+- [x] Login succeeds with valid credentials
+- [x] Incorrect password displays an error
+- [x] Authenticated profile displays the correct user
+- [x] Logout returns to the login screen
+- [x] Refreshing the page clears the session
+
+Note: JWTs are currently stored in React memory only.
+Persistent sessions are deferred to a future milestone.
