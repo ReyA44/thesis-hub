@@ -15,6 +15,8 @@ import express from "express";
 // Import CORS middleware to permit requests from our React app.
 import cors from "cors";
 
+import { prisma } from "./db.js";
+
 // Create an Express application instance.
 // 'app' is the main object used to configure our server.
 const app = express();
@@ -74,6 +76,45 @@ app.get("/api/health", (req, res) => {
  * PORT: The port on which the server listens.
  * Callback: Runs after the server begins listening.
  */
+
+
+/**
+ * GET /api/health/db
+ *
+ * Purpose:
+ * Verify that Express can communicate with PostgreSQL.
+ *
+ * Returns:
+ * 200 — Database connection works.
+ * 503 — Database is unavailable.
+ */
+app.get("/api/health/db", async (req, res) => {
+    try {
+        // Ask Prisma to count registered users.
+        // This executes a real database query.
+        // We don't need actual users for the query to succeed.
+        await prisma.user.count();
+
+        // Query succeeded: database is accessible.
+        res.json({
+            status: "ok",
+            database: "connected",
+        });
+
+    } catch (error) {
+        // Log details to the backend terminal for debugging.
+        console.error("Database connection error:", error);
+
+        // HTTP 503 indicates the service is unavailable.
+        // Don't expose internal database errors to clients.
+        res.status(503).json({
+            status: "error",
+            database: "unavailable",
+        });
+    }
+});
+
+
 app.listen(PORT, () => {
 
     // Log a message so we know the backend has started.

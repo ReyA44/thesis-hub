@@ -1,0 +1,168 @@
+
+/// ThesisHub — Initial Database Schema
+///
+/// Defines the database tables, their fields,
+/// relationships, and uniqueness constraints.
+
+// Generate JavaScript code for querying the database.
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Database connection configured in server/.env.
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums restrict fields to predefined values.
+enum Conviction {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ReactionType {
+  ROCKET
+  BULLISH
+  NEUTRAL
+  BEARISH
+  BAG_HOLDER
+}
+
+/// USER — Registered platform account.
+model User {
+  // cuid() generates a unique string identifier.
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+
+  // Store a password hash, NEVER the actual password.
+  passwordHash String
+
+  createdAt    DateTime @default(now())
+
+  // One user can create multiple posts and interactions.
+  posts        ThesisPost[]
+  replies      Reply[]
+  reactions    Reaction[]
+}
+
+/// THESIS POST — Main content of the platform.
+model ThesisPost {
+  id          String     @id @default(cuid())
+
+  title       String
+  conviction  Conviction
+
+  // All following thesis details are optional.
+  // The '?' means the field can be null.
+  fullThesis     String?
+  priceTarget    Decimal? @db.Decimal(16, 4)
+  timeHorizon    String?
+  targetTimeframe DateTime?
+  invalidation   String?
+  strategy       String?
+  strategyReason String?
+  mainRisks      String?
+  marketMissing  String?
+  counterThesis  String?
+
+  // Market price when the post was published.
+  priceAtPublication Decimal?  @db.Decimal(16, 4)
+  priceCapturedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign key connecting this post to its author.
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  // One post can contain multiple stocks and interactions.
+  stocks    PostStock[]
+  replies   Reply[]
+  reactions Reaction[]
+}
+
+/// STOCK — Company information shared across posts.
+model Stock {
+  id          String @id @default(cuid())
+  ticker      String @unique
+  companyName String
+
+  posts PostStock[]
+}
+
+/// POST STOCK — Connects posts and stocks.
+///
+/// This is a join table supporting a many-to-many
+/// relationship: posts can mention multiple stocks,
+/// and stocks can appear in multiple posts.
+model PostStock {
+  id       String @id @default(cuid())
+
+  postId   String
+  stockId  String
+
+  post     ThesisPost @relation(fields: [postId], references: [id])
+  stock    Stock      @relation(fields: [stockId], references: [id])
+
+  // 0 identifies the primary ticker for charts and targets.
+  position Int
+
+  // Prevent the same stock appearing twice in one post.
+  @@unique([postId, stockId])
+
+  // Prevent two stocks occupying the same position.
+  @@unique([postId, position])
+}
+
+/// REPLY — One reply per user per post.
+model Reply {
+  id        String   @id @default(cuid())
+  content   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  postId String
+
+  user User       @relation(fields: [userId], references: [id])
+  post ThesisPost @relation(fields: [postId], references: [id])
+
+  // Stores the history of previous reply versions.
+  revisions ReplyRevision[]
+
+  // Database enforces one reply per user per post.
+  @@unique([userId, postId])
+}
+
+/// REPLY REVISION — Preserves previous reply content.
+model ReplyRevision {
+  id String @id @default(cuid())
+
+  replyId String
+  reply   Reply @relation(fields: [replyId], references: [id])
+
+  // Previous text before the reply was updated.
+  content String
+
+  createdAt DateTime @default(now())
+}
+
+/// REACTION — One sentiment reaction per user per post.
+model Reaction {
+  id   String       @id @default(cuid())
+  type ReactionType
+
+  userId String
+  postId String
+
+  user User       @relation(fields: [userId], references: [id])
+  post ThesisPost @relation(fields: [postId], references: [id])
+
+  // A user cannot create duplicate reactions to a post.
+  @@unique([userId, postId])
+}
