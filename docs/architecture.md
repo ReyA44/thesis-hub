@@ -75,7 +75,6 @@ flowchart TD
 - REST API endpoint definitions
 - Authentication flow
 - Market-data provider and caching policy
-```
 
 ## 6. Database Design
 
