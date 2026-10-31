@@ -81,7 +81,10 @@ flowchart TD
 
 The application uses PostgreSQL with Prisma ORM.
 
-### Entity Relationship Diagram (ERD)
+
+### Entity Relationship Diagrams (ERD)
+
+#### Core — Users, Posts and Interactions
 
 ```mermaid
 erDiagram
@@ -89,14 +92,19 @@ erDiagram
     USER ||--o{ REPLY : writes
     USER ||--o{ REACTION : selects
 
-    THESIS_POST ||--|{ POST_STOCK : contains
-    STOCK ||--o{ POST_STOCK : appears_in
-
     THESIS_POST ||--o{ REPLY : receives
-    REPLY ||--o{ REPLY_REVISION : has
-
     THESIS_POST ||--o{ REACTION : receives
 
+    REPLY ||--o{ REPLY_REVISION : has
+
+    THESIS_POST ||--|{ POST_STOCK : contains
+    STOCK ||--o{ POST_STOCK : appears_in
+```
+
+#### Supporting Data — Tags, Catalysts and Sources
+
+```mermaid
+erDiagram
     THESIS_POST ||--o{ CATALYST : tracks
     THESIS_POST ||--o{ SOURCE : references
 
@@ -197,4 +205,4 @@ To be finalized during implementation:
 - Market-data caching and refresh intervals
 - Handling deleted replies and edit history
 - Exact database field types and validation rules
-```
+
