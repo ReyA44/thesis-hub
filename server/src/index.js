@@ -9,6 +9,13 @@
  * 4. Start listening for HTTP requests.
  */
 
+import "dotenv/config";
+
+// Authentication cannot safely operate without a signing secret.
+if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET must be configured in server/.env");
+}
+
 // Import Express, a framework for building HTTP APIs.
 import express from "express";
 
@@ -16,6 +23,8 @@ import express from "express";
 import cors from "cors";
 
 import { prisma } from "./db.js";
+
+import { authRouter } from "./routes/auth.js";
 
 // Create an Express application instance.
 // 'app' is the main object used to configure our server.
@@ -113,6 +122,10 @@ app.get("/api/health/db", async (req, res) => {
         });
     }
 });
+
+// Mount authentication endpoints under /api/auth.
+app.use("/api/auth", authRouter);
+
 
 
 app.listen(PORT, () => {
