@@ -159,3 +159,42 @@ Testing method: manual browser testing against the
 local Express API and development PostgreSQL database.
 
 Automated integration tests remain future work.
+
+
+## Milestone 7 — Post Editing and Deletion
+
+### Backend
+
+- [x] Author can update a thesis using PATCH.
+- [x] Partial updates preserve omitted fields.
+- [x] Invalid input is rejected.
+- [x] Missing authentication returns 401.
+- [x] Cross-user PATCH returns 403.
+- [x] Cross-user DELETE returns 403.
+- [x] Author can delete a thesis.
+- [x] Deleting a thesis removes its related records.
+- [x] Deleted thesis returns 404 when retrieved.
+
+### Frontend
+
+- [x] Authors see Edit and Delete controls.
+- [x] Other users do not see management controls.
+- [x] Editing prepopulates the existing thesis.
+- [x] Edited thesis appears in the refreshed feed.
+- [x] Cancel editing preserves the existing thesis.
+- [x] Delete confirmation can be cancelled.
+- [x] Confirmed deletion removes the thesis.
+- [x] Public feed remains available without login.
+- [x] Publishing new theses still works.
+
+### Verification
+
+- [x] `npm run lint`
+- [x] `npm run build`
+
+### Security
+
+Authentication is enforced through JWT middleware.
+Post ownership is checked on the backend, independently
+of the frontend's visibility controls.
+```

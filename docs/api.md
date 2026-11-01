@@ -137,3 +137,64 @@ Responses:
 - 404 Not Found — Thesis does not exist
 - 500 Internal Server Error
 ```
+
+## Update a Thesis
+
+**PATCH** `/api/posts/:id`
+
+Authentication: Required (JWT)
+
+Only the original author can update a thesis.
+
+### Example request
+
+```json
+{
+  "title": "Updated investment thesis",
+  "conviction": "HIGH",
+  "fullThesis": "Updated investment reasoning.",
+  "priceTarget": "120.00",
+  "stocks": [
+    {
+      "ticker": "MSFT",
+      "companyName": "Microsoft"
+    }
+  ]
+}
+```
+
+All fields are optional, but at least one allowed field must
+be provided. Omitted fields remain unchanged.
+
+Supplying `stocks` replaces the existing stock associations.
+The first ticker is the primary ticker.
+
+### Responses
+
+- `200 OK` — Returns `{ "post": ... }`
+- `400 Bad Request` — Invalid fields or values
+- `401 Unauthorized` — Missing, invalid, or expired JWT
+- `403 Forbidden` — The user is not the author
+- `404 Not Found` — Thesis does not exist
+- `500 Internal Server Error` — Unexpected server failure
+
+## Delete a Thesis
+
+**DELETE** `/api/posts/:id`
+
+Authentication: Required (JWT)
+
+Only the original author can permanently delete a thesis.
+
+Related post-stock associations, replies, reply revisions,
+and reactions are deleted within a database transaction.
+Shared stock records and user accounts are preserved.
+
+### Responses
+
+- `204 No Content` — Thesis deleted successfully
+- `401 Unauthorized` — Missing, invalid, or expired JWT
+- `403 Forbidden` — The user is not the author
+- `404 Not Found` — Thesis does not exist
+- `500 Internal Server Error` — Unexpected server failure
+```
