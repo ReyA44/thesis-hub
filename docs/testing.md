@@ -15,14 +15,14 @@ The integration suite creates uniquely named test accounts, tests actual HTTP ro
 ### What is tested
 
 - API health and database connectivity
-- Registration, duplicate registration, login, failed login, protected profile
+- Registration, duplicate registration, login, failed login (including the bcrypt 72-byte boundary), protected profile
 - Authenticated thesis creation and public feed search
 - Publication-price snapshot and optional structured details
 - Cross-user update/delete rejection; invalid field rejection
 - Exclusive sentiment updates and aggregate counts
 - One reply per user, updated content and public revision history
 - Author delete, not-found responses, malformed JSON, request IDs
-- Unit tests for optional field normalization/date validation and 429 throttling
+- Unit tests for shared title/ticker/price-target validation, optional field/date validation and 429 throttling
 
 ### Not automatically proven
 
@@ -31,7 +31,7 @@ The integration suite creates uniquely named test accounts, tests actual HTTP ro
 - Comprehensive penetration testing or high-load operation
 - The course's precise testing coverage threshold (no coverage gate is configured)
 
-## Final manual browser walkthrough — run after synchronizing master
+## Manual browser acceptance checklist — before demos or inviting testers
 
 Start the API, PostgreSQL and Vite as described in [README.md](../README.md). Use **only the browser**, not curl or Postman.
 
@@ -52,7 +52,7 @@ Start the API, PostgreSQL and Vite as described in [README.md](../README.md). Us
 - [ ] Check malformed/empty form inputs show feedback without breaking the page.
 - [ ] Check responsive layout and browser console for obvious errors.
 
-These boxes intentionally start unchecked: **no automated CI result substitutes for an actual browser walkthrough**. Record any problems before the presentation.
+These boxes intentionally start unchecked: **no automated CI result substitutes for an actual browser walkthrough**. Record any problems before any external demo.
 
 ## Local test commands
 
