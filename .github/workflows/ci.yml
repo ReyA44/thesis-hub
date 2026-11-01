@@ -1,17 +1,37 @@
-name: MVP checks
+name: ThesisHub quality checks
+
 on:
   push:
-    branches: [master, feature/**]
+    branches: [master, "feature/**"]
   pull_request:
     branches: [master]
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: integration-password
+          POSTGRES_DB: thesishub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d thesishub_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:integration-password@localhost:5432/thesishub_test?schema=public
+      DATABASE_URL: postgresql://postgres:integration-password@localhost:5432/thesishub_test?schema=public
+      JWT_SECRET: ci-integration-tests-only-not-production-123
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
           cache-dependency-path: |
             client/package-lock.json
@@ -19,9 +39,15 @@ jobs:
       - name: Install backend
         working-directory: server
         run: npm ci
+      - name: Apply migrations to isolated test database
+        working-directory: server
+        run: npx prisma migrate deploy
       - name: Backend unit tests
         working-directory: server
         run: npm test
+      - name: HTTP and PostgreSQL integration tests
+        working-directory: server
+        run: npm run test:integration
       - name: Install frontend
         working-directory: client
         run: npm ci

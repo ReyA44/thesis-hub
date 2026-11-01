@@ -8,6 +8,7 @@
  */
 
 import { Router } from "express";
+import { getCachedQuote } from "./market.js";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import {
@@ -18,7 +19,8 @@ import {
     THESIS_DETAIL_FIELDS,
     parseThesisDetails,
 } from "../utils/thesisDetails.js";
-export const postsRouter = Router();
+export function createPostsRouter({ publicationQuoteLookup = getCachedQuote } = {}) {
+const postsRouter = Router();
 
 /**
  * Shared Prisma query configuration.
@@ -193,6 +195,24 @@ postsRouter.post("/", requireAuth, async (req, res) => {
             error: details.error,
         });
     }
+    // Capture the last available regular-market quote for the primary ticker.
+    // A provider outage never prevents users from publishing their thesis.
+    // The maximum wait keeps the create-post workflow responsive.
+    let publicationQuote = null;
+    try {
+        publicationQuote = await Promise.race([
+            publicationQuoteLookup(normalizedStocks[0].ticker),
+            new Promise((resolve) => setTimeout(() => resolve(null), 2000)),
+        ]);
+    } catch (error) {
+        console.warn("Publication price unavailable:", error?.message || "Unknown error");
+    }
+    // Don't capture stale fallback data as a fresh publication snapshot.
+    if (publicationQuote?.stale || !Number.isFinite(publicationQuote?.price) ||
+        publicationQuote.price <= 0) {
+        publicationQuote = null;
+    }
+
     try {
         /**
          * Create the post and its stock relationships.
@@ -209,6 +229,10 @@ postsRouter.post("/", requireAuth, async (req, res) => {
                 conviction,
                 fullThesis: fullThesis?.trim() || null,
                 priceTarget: normalizedTarget,
+                priceAtPublication: publicationQuote?.price ?? null,
+                // This is the market observation timestamp, not the post creation timestamp.
+                priceCapturedAt: publicationQuote?.priceTime
+                    ? new Date(publicationQuote.priceTime) : null,
                 ...details.data,
 
                 // The author comes from the verified JWT,
@@ -724,3 +748,9 @@ postsRouter.delete("/:id", requireAuth, async (req, res) => {
         });
     }
 });
+
+return postsRouter;
+}
+
+// Default router used in production; tests can inject a deterministic quote source.
+export const postsRouter = createPostsRouter();
