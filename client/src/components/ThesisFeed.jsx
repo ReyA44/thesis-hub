@@ -3,35 +3,43 @@
  * ThesisHub — Public Investment Thesis Feed
  *
  * Responsibilities:
- * 1. Retrieve public posts from the Express API.
- * 2. Display posts with author and stock information.
- * 3. Handle loading, errors, and an empty feed.
- * 4. Refresh when a new thesis is published.
+ * 1. Retrieve and display public investment theses.
+ * 2. Show Edit and Delete actions to post authors only.
+ * 3. Reuse ThesisForm to edit existing posts.
+ * 4. Confirm and execute post deletion.
+ * 5. Refresh the feed after changes.
  *
- * Props:
- * apiUrl     — Express backend base URL.
- * refreshKey — Changes whenever the feed should reload.
+ * Important:
+ * Hiding controls is only a UI convenience.
+ * The Express backend must enforce authorization.
  */
 
 import { useEffect, useState } from "react";
+import ThesisForm from "./ThesisForm.jsx";
 
 export default function ThesisFeed({
     apiUrl,
     refreshKey,
+    session,
+    onPostsChanged,
 }) {
-    // Store the collection of posts returned by the backend.
+    // Public feed data.
     const [posts, setPosts] = useState([]);
 
-    // Track request progress and errors.
+    // Request states.
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    // Post-management states.
+    const [editingPostId, setEditingPostId] = useState(null);
+    const [deletingPostId, setDeletingPostId] = useState(null);
+    const [actionError, setActionError] = useState("");
+
     /**
-     * Fetch the public feed.
+     * Reload posts whenever refreshKey changes.
      *
-     * The effect also runs when refreshKey changes.
-     * AbortController cancels obsolete requests during
-     * unmounting or subsequent refreshes.
+     * AbortController prevents outdated requests
+     * from modifying component state.
      */
     useEffect(() => {
         const controller = new AbortController();
@@ -43,9 +51,7 @@ export default function ThesisFeed({
             try {
                 const response = await fetch(
                     `${apiUrl}/api/posts`,
-                    {
-                        signal: controller.signal,
-                    }
+                    { signal: controller.signal }
                 );
 
                 if (!response.ok) {
@@ -56,7 +62,6 @@ export default function ThesisFeed({
 
                 const data = await response.json();
 
-                // Validate the expected top-level response shape.
                 if (!Array.isArray(data.posts)) {
                     throw new Error("Unexpected feed response.");
                 }
@@ -64,7 +69,6 @@ export default function ThesisFeed({
                 setPosts(data.posts);
 
             } catch (caughtError) {
-                // Ignore errors caused by cancelled requests.
                 if (!controller.signal.aborted) {
                     setError(caughtError.message);
                 }
@@ -78,10 +82,111 @@ export default function ThesisFeed({
 
         loadPosts();
 
-        // Cleanup prevents obsolete fetches from updating state.
         return () => controller.abort();
 
     }, [apiUrl, refreshKey]);
+
+    /**
+     * Open the editing form for a specific post.
+     */
+    function startEditing(postId) {
+        setActionError("");
+        setEditingPostId(postId);
+    }
+
+    /**
+     * Close the editing form without submitting.
+     */
+    function cancelEditing() {
+        setEditingPostId(null);
+        setActionError("");
+    }
+
+    /**
+     * Called after ThesisForm successfully saves an edit.
+     */
+    function handleEdited() {
+        setEditingPostId(null);
+        setActionError("");
+        onPostsChanged();
+    }
+
+    /**
+     * Delete a post after the author confirms.
+     *
+     * The DELETE endpoint returns HTTP 204, which has
+     * no JSON body. Therefore, we don't call
+     * response.json() on successful deletion.
+     */
+    async function handleDelete(post) {
+        if (!session?.token) {
+            setActionError("Please log in again.");
+            return;
+        }
+
+        // Confirm the destructive operation.
+        const confirmed = window.confirm(
+            `Permanently delete this investment thesis?\n\n"${post.title}"`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setDeletingPostId(post.id);
+        setActionError("");
+
+        try {
+            const response = await fetch(
+                `${apiUrl}/api/posts/${post.id}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${session.token}`,
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                // Error responses contain JSON.
+                const data = await response
+                    .json()
+                    .catch(() => ({}));
+
+                if (response.status === 401) {
+                    throw new Error(
+                        "Your session expired. Please log in again."
+                    );
+                }
+
+                if (response.status === 403) {
+                    throw new Error(
+                        "You are not authorized to delete this thesis."
+                    );
+                }
+
+                throw new Error(
+                    data.error || "Could not delete thesis."
+                );
+            }
+
+            // Close any editor associated with this post.
+            if (editingPostId === post.id) {
+                setEditingPostId(null);
+            }
+
+            // Reload the feed to remove the deleted post.
+            onPostsChanged();
+
+        } catch (caughtError) {
+            setActionError(
+                caughtError.message || "Unable to contact the server."
+            );
+
+        } finally {
+            setDeletingPostId(null);
+        }
+    }
 
     return (
         <section className="feed" aria-label="Public thesis feed">
@@ -91,21 +196,24 @@ export default function ThesisFeed({
                 Ideas shared by the ThesisHub community
             </p>
 
-            {/* Show progress while requesting the feed. */}
             {loading && (
                 <p role="status">
                     Loading investment theses...
                 </p>
             )}
 
-            {/* Show an error if the request fails. */}
             {error && (
                 <p className="message error" role="alert">
                     {error}
                 </p>
             )}
 
-            {/* Empty states are distinct from request failures. */}
+            {actionError && (
+                <p className="message error" role="alert">
+                    {actionError}
+                </p>
+            )}
+
             {!loading && !error && posts.length === 0 && (
                 <p className="empty-feed">
                     No theses have been published yet.
@@ -113,69 +221,133 @@ export default function ThesisFeed({
                 </p>
             )}
 
-            {/* Display the retrieved posts. */}
-            {!loading && !error && posts.map((post) => (
-                <article
-                    key={post.id}
-                    className="post-card"
-                >
-                    <div className="post-topline">
-                        <strong>
-                            @{post.author.username}
-                        </strong>
+            {!loading && !error && posts.map((post) => {
+                /**
+                 * Only the author sees editing controls.
+                 *
+                 * Ownership is checked again in the backend
+                 * before any data is modified.
+                 */
+                const isAuthor =
+                    session?.user?.id === post.author.id;
 
-                        <time dateTime={post.createdAt}>
-                            {new Date(post.createdAt).toLocaleString()}
-                        </time>
-                    </div>
+                const isEditing = editingPostId === post.id;
+                const isDeleting = deletingPostId === post.id;
 
-                    <h3 className="post-title">
-                        {post.title}
-                    </h3>
-
-                    <p className="conviction-label">
-                        Conviction: <strong>{post.conviction}</strong>
-                    </p>
-
-                    {/* The API returns stock relationships ordered
-              by their position within the thesis. */}
-                    <ul className="post-stocks">
-                        {post.stocks.map((association, index) => (
-                            <li key={association.id}>
-                                <strong>
-                                    {association.stock.ticker}
-                                </strong>
-
-                                <span>
-                                    {association.stock.companyName}
-                                </span>
-
-                                {index === 0 && (
-                                    <span className="primary-ticker">
-                                        Primary
-                                    </span>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-
-                    {/* Display optional information only when present. */}
-                    {post.fullThesis && (
-                        <p className="post-description">
-                            {post.fullThesis}
-                        </p>
-                    )}
-
-                    {post.priceTarget != null && (
-                        <p className="post-target">
-                            Price target for primary ticker:{" "}
+                return (
+                    <article
+                        key={post.id}
+                        className="post-card"
+                    >
+                        <div className="post-topline">
                             <strong>
-                                {post.priceTarget}
+                                @{post.author.username}
+                            </strong>
+
+                            <time dateTime={post.createdAt}>
+                                {new Date(
+                                    post.createdAt
+                                ).toLocaleString()}
+                            </time>
+                        </div>
+
+                        <h3 className="post-title">
+                            {post.title}
+                        </h3>
+
+                        {/* Post-management controls. */}
+                        {isAuthor && (
+                            <div className="post-actions">
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={() =>
+                                        isEditing
+                                            ? cancelEditing()
+                                            : startEditing(post.id)
+                                    }
+                                    disabled={isDeleting}
+                                >
+                                    {isEditing
+                                        ? "Close editor"
+                                        : "Edit"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={() =>
+                                        handleDelete(post)
+                                    }
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting
+                                        ? "Deleting..."
+                                        : "Delete"}
+                                </button>
+                            </div>
+                        )}
+
+                        {/* The existing form doubles as an editor. */}
+                        {isEditing && isAuthor && (
+                            <ThesisForm
+                                key={post.id}
+                                apiUrl={apiUrl}
+                                token={session.token}
+                                editingPost={post}
+                                onPublished={handleEdited}
+                                onCancel={cancelEditing}
+                            />
+                        )}
+
+                        <p className="conviction-label">
+                            Conviction:{" "}
+                            <strong>
+                                {post.conviction}
                             </strong>
                         </p>
-                    )}
-                </article>
-            ))}
+
+                        {/* Stock relationships arrive in order. */}
+                        <ul className="post-stocks">
+                            {post.stocks.map(
+                                (association, index) => (
+                                    <li key={association.id}>
+                                        <strong>
+                                            {association.stock.ticker}
+                                        </strong>
+
+                                        <span>
+                                            {association.stock.companyName}
+                                        </span>
+
+                                        {index === 0 && (
+                                            <span className="primary-ticker">
+                                                Primary
+                                            </span>
+                                        )}
+                                    </li>
+                                )
+                            )}
+                        </ul>
+
+                        {/* Optional post details. */}
+                        {post.fullThesis && (
+                            <p className="post-description">
+                                {post.fullThesis}
+                            </p>
+                        )}
+
+                        {post.priceTarget != null && (
+                            <p className="post-target">
+                                Price target for primary ticker:{" "}
+                                <strong>
+                                    {post.priceTarget}
+                                </strong>
+                            </p>
+                        )}
+                    </article>
+                );
+            })}
         </section>
     );
 }

@@ -1,48 +1,78 @@
 
 /**
- * ThesisHub — Thesis Publishing Form
+ * ThesisHub — Investment Thesis Form
  *
- * Responsibilities:
- * 1. Collect structured investment-thesis information.
- * 2. Support one or more stock tickers.
- * 3. Submit authenticated POST requests.
- * 4. Display loading, success, and error messages.
+ * Supports two modes:
+ * 1. Create: publish a new thesis using POST /api/posts.
+ * 2. Edit: update an existing thesis using PATCH /api/posts/:id.
  *
  * Props:
- * apiUrl      — Base address of the Express backend.
- * token       — JWT belonging to the logged-in user.
- * onPublished — Callback executed after successful publishing.
+ * apiUrl       — Base URL of the Express backend.
+ * token        — JWT belonging to the authenticated user.
+ * onPublished  — Callback after successfully saving.
+ * editingPost  — Existing post to edit, or null for creation.
+ * onCancel     — Callback to close the editor.
  */
 
 import { useRef, useState } from "react";
+
+/**
+ * Build stock rows from an existing thesis.
+ * Each row receives a local ID used as its React key.
+ */
+function createInitialStocks(editingPost) {
+    if (!editingPost?.stocks?.length) {
+        return [{ id: 0, ticker: "", companyName: "" }];
+    }
+
+    return editingPost.stocks.map((association, index) => ({
+        id: index,
+        ticker: association.stock.ticker,
+        companyName: association.stock.companyName,
+    }));
+}
 
 export default function ThesisForm({
     apiUrl,
     token,
     onPublished,
+    editingPost = null,
+    onCancel = () => { },
 }) {
+    const isEditing = editingPost !== null;
+
     // Required thesis fields.
-    const [title, setTitle] = useState("");
-    const [conviction, setConviction] = useState("MEDIUM");
+    const [title, setTitle] = useState(
+        editingPost?.title ?? ""
+    );
+
+    const [conviction, setConviction] = useState(
+        editingPost?.conviction ?? "MEDIUM"
+    );
 
     // Optional thesis fields.
-    const [fullThesis, setFullThesis] = useState("");
-    const [priceTarget, setPriceTarget] = useState("");
+    const [fullThesis, setFullThesis] = useState(
+        editingPost?.fullThesis ?? ""
+    );
+
+    const [priceTarget, setPriceTarget] = useState(
+        editingPost?.priceTarget?.toString() ?? ""
+    );
 
     /**
-     * Each row contains a company name and stock ticker.
+     * The first stock is always the primary ticker.
      *
-     * 'id' is used only by React to identify the row.
-     * It is not part of the API request.
-     *
-     * The first row represents the primary ticker.
+     * Its position determines which stock the price target
+     * applies to.
      */
-    const [stocks, setStocks] = useState([
-        { id: 0, ticker: "", companyName: "" },
-    ]);
+    const [stocks, setStocks] = useState(
+        () => createInitialStocks(editingPost)
+    );
 
-    // Keeps new row IDs unique, including after removing rows.
-    const nextStockId = useRef(1);
+    // Generate unique IDs for newly added stock rows.
+    const nextStockId = useRef(
+        editingPost?.stocks?.length ?? 1
+    );
 
     // Form feedback.
     const [loading, setLoading] = useState(false);
@@ -50,11 +80,8 @@ export default function ThesisForm({
     const [success, setSuccess] = useState("");
 
     /**
-     * Update one field in a specific stock row.
-     *
-     * React state is immutable:
-     * map() creates a new array instead of editing
-     * the existing array directly.
+     * Update a field in one stock row without directly
+     * mutating React state.
      */
     function updateStock(rowId, field, value) {
         setStocks((currentStocks) =>
@@ -67,9 +94,9 @@ export default function ThesisForm({
     }
 
     /**
-     * Add a new stock row.
+     * Add another ticker.
      *
-     * The backend currently allows a maximum of 10 stocks.
+     * The backend supports a maximum of 10 stocks per thesis.
      */
     function addStock() {
         if (stocks.length >= 10) return;
@@ -89,7 +116,7 @@ export default function ThesisForm({
     }
 
     /**
-     * Remove a row, but always keep at least one stock.
+     * Remove a stock row, retaining at least one.
      */
     function removeStock(rowId) {
         setStocks((currentStocks) => {
@@ -104,28 +131,29 @@ export default function ThesisForm({
     }
 
     /**
-     * Submit a structured thesis to our Express backend.
+     * Send a POST or PATCH request, depending on form mode.
      */
     async function handleSubmit(event) {
-        // Prevent the browser's default form submission.
         event.preventDefault();
 
         setLoading(true);
         setError("");
         setSuccess("");
 
-        // Only authenticated users may publish.
         if (!token) {
-            setError("Please log in before publishing.");
+            setError("Please log in before saving a thesis.");
             setLoading(false);
             return;
         }
 
         /**
-         * Build the request body expected by POST /api/posts.
+         * Both endpoints accept the same structured fields.
          *
-         * Stock order is preserved:
-         * the backend assigns position 0 to the first stock.
+         * PATCH currently sends all editable fields, rather
+         * than only the fields the user changed.
+         *
+         * The stock array is ordered so the first ticker
+         * remains the primary ticker.
          */
         const payload = {
             title: title.trim(),
@@ -138,57 +166,82 @@ export default function ThesisForm({
 
             fullThesis: fullThesis.trim(),
 
-            // An empty optional target should be omitted.
-            priceTarget: priceTarget.trim() || undefined,
+            // An empty value clears an existing price target
+            // during editing. It is omitted during creation.
+            priceTarget: priceTarget.trim() || (
+                isEditing ? null : undefined
+            ),
         };
 
+        const endpoint = isEditing
+            ? `${apiUrl}/api/posts/${editingPost.id}`
+            : `${apiUrl}/api/posts`;
+
         try {
-            const response = await fetch(
-                `${apiUrl}/api/posts`,
-                {
-                    method: "POST",
+            const response = await fetch(endpoint, {
+                method: isEditing ? "PATCH" : "POST",
 
-                    headers: {
-                        "Content-Type": "application/json",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
 
-                        // JWT proves which user is publishing.
-                        Authorization: `Bearer ${token}`,
-                    },
-
-                    body: JSON.stringify(payload),
-                }
-            );
+                body: JSON.stringify(payload),
+            });
 
             const data = await response.json();
 
             if (!response.ok) {
-                // A JWT may expire while the form is open.
                 if (response.status === 401) {
                     throw new Error(
                         "Your session may have expired. Log out and sign in again."
                     );
                 }
 
-                // Prefer the backend's validation message.
+                if (response.status === 403) {
+                    throw new Error(
+                        "You are not authorized to modify this thesis."
+                    );
+                }
+
                 throw new Error(
-                    data.error || "Could not publish thesis."
+                    data.error || "Could not save investment thesis."
                 );
             }
 
-            // Successful POST returns HTTP 201.
-            // Reset the form so another thesis can be created.
+            /**
+             * Successful edit:
+             *
+             * The parent component closes the editor and
+             * refreshes the feed.
+             */
+            if (isEditing) {
+                onPublished();
+                return;
+            }
+
+            /**
+             * Successful creation:
+             *
+             * Clear all fields so the user can publish
+             * another thesis.
+             */
             setTitle("");
             setConviction("MEDIUM");
             setFullThesis("");
             setPriceTarget("");
 
             setStocks([
-                { id: nextStockId.current++, ticker: "", companyName: "" },
+                {
+                    id: nextStockId.current++,
+                    ticker: "",
+                    companyName: "",
+                },
             ]);
 
             setSuccess("Your investment thesis was published!");
 
-            // Notify App.jsx that the public feed needs refreshing.
+            // Refresh the public feed.
             onPublished();
 
         } catch (caughtError) {
@@ -202,13 +255,17 @@ export default function ThesisForm({
 
     return (
         <section className="new-post">
-            <h2>Publish an investment thesis</h2>
+            <h2>
+                {isEditing
+                    ? "Edit investment thesis"
+                    : "Publish an investment thesis"}
+            </h2>
 
             <form
                 className="thesis-form"
                 onSubmit={handleSubmit}
             >
-                {/* Required: short thesis title */}
+                {/* Required: thesis title */}
                 <label htmlFor="thesis-title">
                     Thesis title *
 
@@ -222,6 +279,7 @@ export default function ThesisForm({
                         maxLength={180}
                         placeholder="Why I believe this stock may outperform..."
                         required
+                        disabled={loading}
                     />
                 </label>
 
@@ -239,6 +297,7 @@ export default function ThesisForm({
                         onChange={(event) =>
                             setConviction(event.target.value)
                         }
+                        disabled={loading}
                     >
                         <option value="LOW">Low</option>
                         <option value="MEDIUM">Medium</option>
@@ -246,13 +305,16 @@ export default function ThesisForm({
                     </select>
                 </label>
 
-                {/* Required: one or more stocks */}
-                <fieldset className="stocks-fieldset">
+                {/* Required: associated stocks */}
+                <fieldset
+                    className="stocks-fieldset"
+                    disabled={loading}
+                >
                     <legend>Stocks *</legend>
 
                     <p className="field-hint">
                         The first stock is the primary ticker
-                        used for the price target.
+                        associated with the price target.
                     </p>
 
                     {stocks.map((stock, index) => (
@@ -304,7 +366,9 @@ export default function ThesisForm({
                                 type="button"
                                 className="secondary-button"
                                 onClick={() => removeStock(stock.id)}
-                                disabled={stocks.length === 1 || loading}
+                                disabled={
+                                    stocks.length === 1 || loading
+                                }
                                 aria-label={`Remove stock ${index + 1}`}
                             >
                                 Remove
@@ -322,7 +386,7 @@ export default function ThesisForm({
                     </button>
                 </fieldset>
 
-                {/* Optional: detailed investment thesis */}
+                {/* Optional: detailed thesis text */}
                 <label htmlFor="full-thesis">
                     Full thesis (optional)
 
@@ -335,10 +399,11 @@ export default function ThesisForm({
                         maxLength={10000}
                         rows={5}
                         placeholder="Explain the reasoning behind your investment thesis..."
+                        disabled={loading}
                     />
                 </label>
 
-                {/* Optional: target for the primary ticker only */}
+                {/* Optional: primary ticker price target */}
                 <label htmlFor="price-target">
                     Price target — primary ticker (optional)
 
@@ -351,6 +416,7 @@ export default function ThesisForm({
                             setPriceTarget(event.target.value)
                         }
                         placeholder="650.00"
+                        disabled={loading}
                     />
                 </label>
 
@@ -372,9 +438,23 @@ export default function ThesisForm({
                     disabled={loading}
                 >
                     {loading
-                        ? "Publishing..."
-                        : "Publish thesis"}
+                        ? "Saving..."
+                        : isEditing
+                            ? "Save changes"
+                            : "Publish thesis"}
                 </button>
+
+                {/* Cancel exists only when editing a post. */}
+                {isEditing && (
+                    <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={onCancel}
+                        disabled={loading}
+                    >
+                        Cancel editing
+                    </button>
+                )}
             </form>
         </section>
     );

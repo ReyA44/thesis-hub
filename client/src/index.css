@@ -417,3 +417,34 @@ button:focus-visible {
     flex-direction: column;
   }
 }
+
+
+/* Post management controls */
+
+.post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.post-actions button {
+  width: auto;
+}
+
+/* Separate the inline editor from the post details. */
+
+.post-card .new-post {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 0.75rem;
+}
+
+.post-card .thesis-form {
+  margin-top: 1rem;
+}
+
+.post-card .thesis-form>button {
+  margin-top: 0.5rem;
+}

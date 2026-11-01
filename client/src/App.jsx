@@ -7,7 +7,7 @@
  * 2. Display registration and login forms for guests.
  * 3. Display the publishing form for signed-in users.
  * 4. Display the public feed for everyone.
- * 5. Coordinate feed refreshes after publishing.
+ * 5. Refresh the feed after publishing, editing or deleting.
  */
 
 import { useEffect, useState } from "react";
@@ -46,8 +46,12 @@ function App() {
   );
 
   /**
-   * Incrementing refreshKey triggers a new GET /api/posts
-   * request inside ThesisFeed.
+   * Any successful post mutation increments refreshKey.
+   *
+   * This includes:
+   * - Publishing
+   * - Editing
+   * - Deleting
    */
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -83,7 +87,7 @@ function App() {
   }, []);
 
   /**
-   * Switch between the Login and Register forms.
+   * Switch between Login and Register.
    */
   function changeMode(nextMode) {
     setMode(nextMode);
@@ -93,7 +97,7 @@ function App() {
   }
 
   /**
-   * Submit a login or registration request.
+   * Submit login or registration.
    */
   async function handleSubmit(event) {
     event.preventDefault();
@@ -131,18 +135,19 @@ function App() {
       }
 
       if (mode === "register") {
-        // Registration succeeds but doesn't log in
-        // automatically in our current backend.
+        // Registration doesn't automatically log in.
         changeMode("login");
-        setNotice("Account created! Please sign in.");
+
+        setNotice(
+          "Account created! Please sign in."
+        );
+
         return;
       }
 
       /**
-       * Login returns a JWT.
-       *
-       * Verify it by requesting the protected
-       * GET /api/auth/me endpoint.
+       * Verify the login token using the protected
+       * current-user endpoint.
        */
       const profileResponse = await fetch(
         `${API_URL}/api/auth/me`,
@@ -161,7 +166,7 @@ function App() {
 
       const profile = await profileResponse.json();
 
-      // Save the logged-in user and JWT in React state.
+      // Save the authenticated account and token.
       setSession({
         token: data.token,
         user: profile.user,
@@ -180,7 +185,7 @@ function App() {
   }
 
   /**
-   * Logout discards our stored JWT and user information.
+   * Logout clears the in-memory session.
    */
   function handleLogout() {
     setSession(null);
@@ -190,12 +195,12 @@ function App() {
   }
 
   /**
-   * Called by ThesisForm after a successful POST.
+   * Notify the public feed when posts change.
    *
-   * React updates refreshKey, triggering ThesisFeed
-   * to retrieve the latest posts.
+   * React updates refreshKey, causing ThesisFeed's
+   * useEffect to request the latest posts.
    */
-  function handleThesisPublished() {
+  function handlePostsChanged() {
     setRefreshKey((previous) => previous + 1);
   }
 
@@ -206,7 +211,7 @@ function App() {
         <p>Share ideas. Challenge assumptions.</p>
       </header>
 
-      {/* Guest or authenticated account information. */}
+      {/* Account panel for signed-in users. */}
       {session ? (
         <section className="signed-in-panel">
           <div>
@@ -232,7 +237,9 @@ function App() {
           <div className="auth-tabs">
             <button
               type="button"
-              className={mode === "login" ? "active" : ""}
+              className={
+                mode === "login" ? "active" : ""
+              }
               aria-pressed={mode === "login"}
               onClick={() => changeMode("login")}
             >
@@ -241,7 +248,9 @@ function App() {
 
             <button
               type="button"
-              className={mode === "register" ? "active" : ""}
+              className={
+                mode === "register" ? "active" : ""
+              }
               aria-pressed={mode === "register"}
               onClick={() => changeMode("register")}
             >
@@ -307,20 +316,28 @@ function App() {
                     : "current-password"
                 }
                 minLength={
-                  mode === "register" ? 12 : undefined
+                  mode === "register"
+                    ? 12
+                    : undefined
                 }
                 required
               />
             </label>
 
             {error && (
-              <p className="message error" role="alert">
+              <p
+                className="message error"
+                role="alert"
+              >
                 {error}
               </p>
             )}
 
             {notice && (
-              <p className="message success" role="status">
+              <p
+                className="message success"
+                role="status"
+              >
                 {notice}
               </p>
             )}
@@ -340,19 +357,21 @@ function App() {
         </section>
       )}
 
-      {/* Only authenticated users can see the post form. */}
+      {/* Publishing is limited to signed-in users. */}
       {session && (
         <ThesisForm
           apiUrl={API_URL}
           token={session.token}
-          onPublished={handleThesisPublished}
+          onPublished={handlePostsChanged}
         />
       )}
 
-      {/* The feed is PUBLIC, including for logged-out users. */}
+      {/* Everyone can view the feed. */}
       <ThesisFeed
         apiUrl={API_URL}
         refreshKey={refreshKey}
+        session={session}
+        onPostsChanged={handlePostsChanged}
       />
 
       <footer className="app-footer">

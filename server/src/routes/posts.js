@@ -296,3 +296,397 @@ postsRouter.get("/:id", async (req, res) => {
         });
     }
 });
+
+
+/**
+ * PATCH /api/posts/:id
+ *
+ * Update an investment thesis.
+ *
+ * Authentication is required, and only the original
+ * author may update the post.
+ *
+ * PATCH supports partial updates:
+ * fields omitted from the request remain unchanged.
+ *
+ * Editable fields:
+ * - title
+ * - conviction
+ * - fullThesis
+ * - priceTarget
+ * - stocks
+ */
+postsRouter.patch("/:id", requireAuth, async (req, res) => {
+    const postId = req.params.id;
+    const changes = req.body;
+
+    // Explicitly define fields users are allowed to edit.
+    // This prevents arbitrary database-field modifications.
+    const allowedFields = [
+        "title",
+        "conviction",
+        "fullThesis",
+        "priceTarget",
+        "stocks",
+    ];
+
+    // A PATCH request must contain at least one valid field.
+    if (
+        !changes ||
+        typeof changes !== "object" ||
+        Array.isArray(changes) ||
+        Object.keys(changes).length === 0 ||
+        Object.keys(changes).some(
+            (field) => !allowedFields.includes(field)
+        )
+    ) {
+        return res.status(400).json({
+            error: "Request contains no valid editable fields.",
+        });
+    }
+
+    // Prisma update data is constructed only from validated fields.
+    const updateData = {};
+
+    /**
+     * Validate an updated title when one is provided.
+     */
+    if ("title" in changes) {
+        const title =
+            typeof changes.title === "string"
+                ? changes.title.trim()
+                : "";
+
+        if (
+            !title ||
+            title.length > 180 ||
+            /[\r\n]/.test(title)
+        ) {
+            return res.status(400).json({
+                error: "Title must be a single line of 1-180 characters.",
+            });
+        }
+
+        updateData.title = title;
+    }
+
+    /**
+     * Validate conviction.
+     */
+    if ("conviction" in changes) {
+        if (
+            !["LOW", "MEDIUM", "HIGH"].includes(
+                changes.conviction
+            )
+        ) {
+            return res.status(400).json({
+                error: "Invalid conviction value.",
+            });
+        }
+
+        updateData.conviction = changes.conviction;
+    }
+
+    /**
+     * Validate optional full thesis text.
+     *
+     * Sending null or an empty string clears the field.
+     */
+    if ("fullThesis" in changes) {
+        if (
+            changes.fullThesis !== null &&
+            (
+                typeof changes.fullThesis !== "string" ||
+                changes.fullThesis.length > 10000
+            )
+        ) {
+            return res.status(400).json({
+                error: "Full thesis must contain at most 10,000 characters.",
+            });
+        }
+
+        updateData.fullThesis =
+            changes.fullThesis?.trim() || null;
+    }
+
+    /**
+     * Validate the primary stock's price target.
+     *
+     * Decimal values are represented as strings to
+     * avoid JavaScript floating-point precision problems.
+     */
+    if ("priceTarget" in changes) {
+        const target =
+            changes.priceTarget === "" ||
+                changes.priceTarget === null
+                ? null
+                : changes.priceTarget;
+
+        if (
+            target !== null &&
+            (
+                typeof target !== "string" ||
+                !/^(?:0|[1-9]\d{0,11})(?:\.\d{1,4})?$/.test(target) ||
+                Number(target) <= 0
+            )
+        ) {
+            return res.status(400).json({
+                error: "Price target must be a positive decimal string.",
+            });
+        }
+
+        updateData.priceTarget = target;
+    }
+
+    /**
+     * Validate and replace the associated stocks
+     * only when the request includes a stocks array.
+     */
+    if ("stocks" in changes) {
+        const stocks = changes.stocks;
+
+        if (
+            !Array.isArray(stocks) ||
+            stocks.length < 1 ||
+            stocks.length > 10
+        ) {
+            return res.status(400).json({
+                error: "A thesis must contain 1-10 stocks.",
+            });
+        }
+
+        const normalizedStocks = [];
+
+        for (const stock of stocks) {
+            const ticker =
+                typeof stock?.ticker === "string"
+                    ? stock.ticker.trim().toUpperCase()
+                    : "";
+
+            const companyName =
+                typeof stock?.companyName === "string"
+                    ? stock.companyName.trim()
+                    : "";
+
+            if (
+                !/^[A-Z0-9]+(?:[.-][A-Z0-9]+)*$/.test(ticker) ||
+                ticker.length > 15 ||
+                !companyName ||
+                companyName.length > 120
+            ) {
+                return res.status(400).json({
+                    error: "Each stock needs a valid ticker and company name.",
+                });
+            }
+
+            normalizedStocks.push({
+                ticker,
+                companyName,
+            });
+        }
+
+        // Database uniqueness constraints prohibit duplicates.
+        const tickers = normalizedStocks.map(
+            (stock) => stock.ticker
+        );
+
+        if (new Set(tickers).size !== tickers.length) {
+            return res.status(400).json({
+                error: "Duplicate tickers are not allowed.",
+            });
+        }
+
+        /**
+         * Replace the existing PostStock relationships.
+         *
+         * deleteMany removes this post's ticker associations,
+         * NOT the shared Stock records.
+         *
+         * create rebuilds the associations in the new order.
+         *
+         * Both operations are part of Prisma's nested write.
+         */
+        updateData.stocks = {
+            deleteMany: {},
+            create: normalizedStocks.map((stock, index) => ({
+                position: index,
+
+                stock: {
+                    connectOrCreate: {
+                        where: { ticker: stock.ticker },
+                        create: {
+                            ticker: stock.ticker,
+                            companyName: stock.companyName,
+                        },
+                    },
+                },
+            })),
+        };
+    }
+
+    try {
+        /**
+         * Check whether the post exists and who owns it.
+         *
+         * req.userId comes from our JWT middleware,
+         * not from the request body.
+         */
+        const existingPost = await prisma.thesisPost.findUnique({
+            where: { id: postId },
+            select: { authorId: true },
+        });
+
+        if (!existingPost) {
+            return res.status(404).json({
+                error: "Thesis not found.",
+            });
+        }
+
+        if (existingPost.authorId !== req.userId) {
+            return res.status(403).json({
+                error: "You cannot edit another user's thesis.",
+            });
+        }
+
+        /**
+         * Update only if the post still belongs to this user.
+         *
+         * Including authorId in the update condition adds
+         * another database-level ownership safeguard.
+         */
+        const post = await prisma.thesisPost.update({
+            where: {
+                id: postId,
+                authorId: req.userId,
+            },
+
+            data: updateData,
+
+            // Return the updated post in our existing API format.
+            include: postRelations,
+        });
+
+        return res.json({ post });
+
+    } catch (error) {
+        // The post may have been deleted after the initial check.
+        if (error.code === "P2025") {
+            return res.status(404).json({
+                error: "Thesis no longer exists.",
+            });
+        }
+
+        console.error("Failed to update thesis:", error);
+
+        return res.status(500).json({
+            error: "Could not update thesis.",
+        });
+    }
+});
+
+
+/**
+ * DELETE /api/posts/:id
+ *
+ * Permanently delete an investment thesis.
+ *
+ * Only its original author may delete it.
+ *
+ * Deletion includes related:
+ * - Reply revisions
+ * - Replies
+ * - Reactions
+ * - PostStock relationships
+ *
+ * Shared Stock records and user accounts remain intact.
+ */
+postsRouter.delete("/:id", requireAuth, async (req, res) => {
+    const postId = req.params.id;
+
+    try {
+        /**
+         * Interactive Prisma transaction:
+         *
+         * All database operations succeed together,
+         * or PostgreSQL rolls back the entire operation.
+         */
+        const result = await prisma.$transaction(async (tx) => {
+            // Verify post existence and ownership.
+            const post = await tx.thesisPost.findUnique({
+                where: { id: postId },
+                select: { authorId: true },
+            });
+
+            if (!post) {
+                return { status: 404 };
+            }
+
+            if (post.authorId !== req.userId) {
+                return { status: 403 };
+            }
+
+            /**
+             * Remove dependent records before deleting the post.
+             *
+             * Our Prisma schema has foreign-key relationships
+             * without cascading deletes, so cleanup is explicit.
+             */
+
+            // First remove revisions belonging to this post's replies.
+            await tx.replyRevision.deleteMany({
+                where: {
+                    reply: {
+                        is: { postId },
+                    },
+                },
+            });
+
+            // Then remove the replies.
+            await tx.reply.deleteMany({
+                where: { postId },
+            });
+
+            // Remove reactions.
+            await tx.reaction.deleteMany({
+                where: { postId },
+            });
+
+            // Remove relationships with stock records.
+            await tx.postStock.deleteMany({
+                where: { postId },
+            });
+
+            // Finally delete the thesis itself.
+            await tx.thesisPost.delete({
+                where: {
+                    id: postId,
+                    authorId: req.userId,
+                },
+            });
+
+            return { status: 204 };
+        });
+
+        if (result.status === 404) {
+            return res.status(404).json({
+                error: "Thesis not found.",
+            });
+        }
+
+        if (result.status === 403) {
+            return res.status(403).json({
+                error: "You cannot delete another user's thesis.",
+            });
+        }
+
+        // HTTP 204 means successful deletion with no response body.
+        return res.status(204).send();
+
+    } catch (error) {
+        console.error("Failed to delete thesis:", error);
+
+        return res.status(500).json({
+            error: "Could not delete thesis.",
+        });
+    }
+});
