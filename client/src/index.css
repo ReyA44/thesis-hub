@@ -1,747 +1,241 @@
-/* ThesisHub — Base styling */
+/* ThesisHub POC-inspired UI: React + standard CSS only.
+   CSS variables, Grid and Flexbox are the only layout tools in use. */
 
 :root {
-  font-family: system-ui, sans-serif;
-  color: #172033;
-  background: #f4f6fa;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #18263d;
+  background: #f5f7fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
-
-* {
-  box-sizing: border-box;
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .56; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid #9cb6ff; outline-offset: 2px; }
+h1, h2, h3, h4, p { margin-top: 0; }
+label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 13px; color: #40516b; }
+input, select, textarea {
+  width: 100%; min-width: 0; padding: 10px 12px;
+  border: 1px solid #d8e0ec; border-radius: 9px;
+  color: #18263d; background: white;
 }
+textarea { resize: vertical; min-height: 85px; line-height: 1.5; }
+input::placeholder, textarea::placeholder { color: #92a0b6; }
+input:focus, select:focus, textarea:focus { border-color: #6c96e9; outline: 2px solid #dae7ff; outline-offset: 0; }
+form { display: flex; flex-direction: column; gap: 13px; }
+summary { cursor: pointer; }
+summary::marker { color: #6c7e99; }
 
-body {
-  margin: 0;
-}
-
-button,
-input {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-/* Page layout */
-
-.app {
-  min-height: 100vh;
-  padding: 48px 20px;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-}
-
+.app { min-height: 100vh; }
 .app-header {
-  text-align: center;
-  margin-bottom: 32px;
+  background: #fff; border-bottom: 1px solid #e3e9f2;
+  position: sticky; top: 0; z-index: 4;
 }
-
-.app-header h1 {
-  font-size: 44px;
-  margin: 0 0 8px;
+.app-header-inner {
+  max-width: 1220px; margin: auto; padding: 16px 26px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
-
-.app-header p,
-.app-footer {
-  color: #64748b;
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-mark {
+  display: inline-grid; place-items: center; flex: 0 0 42px;
+  height: 42px; border-radius: 12px; color: white; background: #295fc8;
+  font-weight: 800; letter-spacing: -.06em; font-size: 15px;
 }
+.app-header h1 { font-size: 23px; letter-spacing: -.045em; line-height: 1.15; margin: 0; }
+.app-header p { margin: 3px 0 0; font-size: 12px; color: #77869a; }
+.header-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.header-nav a { text-decoration: none; font-size: 13px; font-weight: 700; color: #455875; padding: 9px 12px; border-radius: 9px; }
+.header-nav a:hover { background: #f0f5fc; }
+.header-nav .header-action { background: #245ec9; color: white; }
+.header-nav .header-action:hover { background: #1c4caa; }
 
-/* Authentication card */
-
-.auth-card {
-  width: 100%;
-  max-width: 420px;
-  background: white;
-  padding: 32px;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.06);
+.app-workspace {
+  width: min(1180px, calc(100% - 44px)); margin: 27px auto;
+  display: grid; grid-template-columns: minmax(0, 1fr) 290px; align-items: start; gap: 24px;
 }
-
-.auth-card h2 {
-  margin: 0 0 24px;
-  font-size: 24px;
+.app-primary { min-width: 0; }
+.app-sidebar { display: flex; flex-direction: column; gap: 16px; min-width: 0; position: sticky; top: 99px; }
+.auth-card, .signed-in-panel, .sidebar-help, .composer-panel, .post-card, .feed-filters {
+  background: white; border: 1px solid #e1e7f0; border-radius: 15px;
+  box-shadow: 0 3px 14px rgba(22, 42, 77, .035);
 }
+.auth-card { padding: 22px; width: 100%; }
+.auth-card h2 { font-size: 18px; margin: 0 0 14px; }
+.auth-tabs { display: flex; gap: 5px; background: #f0f3f9; padding: 4px; border-radius: 10px; margin-bottom: 18px; }
+.auth-tabs button { border: 0; background: transparent; border-radius: 7px; flex: 1; padding: 8px; color: #65728b; font-size: 13px; font-weight: 700; }
+.auth-tabs button.active { background: #fff; color: #245ec9; box-shadow: 0 1px 5px #cad5e3; }
+.auth-card form { gap: 12px; }
+.auth-card input { padding: 10px; }
+.signed-in-panel { padding: 20px; display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+.signed-in-panel strong { font-size: 15px; }
+.account-email { color: #75849b; font-size: 12px; margin: 5px 0 0; overflow-wrap: anywhere; }
+.sidebar-help { padding: 18px 20px; background: #eff4ff; border-color: #dde7fc; }
+.sidebar-help strong { font-size: 13px; color: #27487a; }
+.sidebar-help p { font-size: 12px; margin: 7px 0 0; line-height: 1.6; color: #607798; }
+.app-footer { text-align: center; padding: 10px 12px 28px; color: #8190a4; font-size: 12px; }
+.status-indicator { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #acb5c4; margin-right: 6px; }
+.status-indicator.is-connected { background: #51b784; }
 
-.auth-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 28px;
+.submit-button {
+  display: inline-flex; justify-content: center; align-items: center;
+  background: #245fc8; border: 1px solid #245fc8; color: white;
+  border-radius: 9px; padding: 10px 16px; font-size: 13px; font-weight: 700;
 }
-
-.auth-tabs button {
-  flex: 1;
-  padding: 10px;
-  border: 0;
-  border-radius: 8px;
-  background: #edf2f7;
-}
-
-.auth-tabs button.active {
-  background: #1d4ed8;
-  color: white;
-}
-
-/* Form */
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-weight: 600;
-}
-
-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-}
-
-input:focus-visible,
-button:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-}
-
-.submit-button,
-.auth-card>button {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  background: #1d4ed8;
-  color: white;
-  font-weight: 600;
-}
-
-.message {
-  padding: 10px;
-  border-radius: 8px;
-  font-weight: 400;
-}
-
-.error {
-  color: #991b1b;
-  background: #fee2e2;
-}
-
-.success {
-  color: #166534;
-  background: #dcfce7;
-}
-
-.account-email {
-  margin: 12px 0 24px;
-  color: #64748b;
-}
-
-.app-footer {
-  margin-top: 24px;
-  font-size: 14px;
-}
-
-
-/* =====================================================
-   ThesisHub — Thesis Publishing and Public Feed
-   ===================================================== */
-
-/* Keep the main application content readable. */
-.signed-in-panel,
-.new-post,
-.feed {
-  width: 100%;
-  max-width: 760px;
-}
-
-/* Logged-in account summary */
-.signed-in-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 24px;
-  padding: 20px 24px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-}
-
-.signed-in-panel .account-email {
-  margin: 6px 0 0;
-}
-
-/* Reusable secondary button */
+.submit-button:hover:not(:disabled) { background: #1b4eaa; }
 .secondary-button {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: white;
-  color: #334155;
-  padding: 10px 14px;
-  font-weight: 600;
-}
-
-.secondary-button:hover:not(:disabled) {
-  background: #f1f5f9;
-}
-
-/* Publishing card */
-.new-post {
-  margin-top: 24px;
-  padding: 28px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-}
-
-.new-post h2 {
-  margin: 0 0 24px;
-}
-
-.thesis-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.thesis-form textarea,
-.thesis-form select {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font: inherit;
-  background: white;
-  color: #172033;
-}
-
-.thesis-form textarea {
-  resize: vertical;
-  min-height: 110px;
-}
-
-.thesis-form textarea:focus-visible,
-.thesis-form select:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-}
-
-.field-hint {
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.5;
-}
-
-/* Grouping and ordering stock tickers */
-.stocks-fieldset {
-  min-width: 0;
-  margin: 0;
-  padding: 18px;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-}
-
-.stocks-fieldset legend {
-  font-weight: 700;
-  padding: 0 8px;
-}
-
-.stocks-fieldset>.field-hint {
-  margin-bottom: 16px;
-}
-
-/* Each stock row has two inputs and a remove button. */
-.stock-row {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr auto;
-  align-items: end;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.stock-row label {
-  font-size: 14px;
-}
-
-.stock-row .secondary-button {
-  align-self: end;
-}
-
-.thesis-form .submit-button {
-  margin-top: 4px;
-}
-
-/* Public feed */
-.feed {
-  margin-top: 40px;
-}
-
-.feed h2 {
-  margin: 0;
-  font-size: 28px;
-}
-
-.feed-subtitle {
-  color: #64748b;
-  margin: 8px 0 24px;
-}
-
-.empty-feed {
-  padding: 28px;
-  text-align: center;
-  background: white;
-  border: 1px dashed #cbd5e1;
-  border-radius: 12px;
-  color: #64748b;
-}
-
-/* Individual investment thesis card */
-.post-card {
-  margin-bottom: 20px;
-  padding: 26px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  overflow-wrap: anywhere;
-}
-
-.post-topline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.post-topline strong {
-  color: #334155;
-}
-
-.post-title {
-  font-size: 21px;
-  line-height: 1.35;
-  margin: 16px 0;
-  color: #172033;
-}
-
-.conviction-label {
-  font-size: 14px;
-  color: #475569;
-  margin-bottom: 18px;
-}
-
-/* Stock ticker display */
-.post-stocks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 0;
-  margin: 0 0 18px;
-  list-style: none;
-}
-
-.post-stocks li {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-  padding: 8px 10px;
-  background: #f1f5f9;
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.post-stocks li strong {
-  color: #1d4ed8;
-}
-
-.primary-ticker {
-  color: #166534;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-/* Preserve paragraph breaks from the author's thesis. */
-.post-description {
-  color: #334155;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  margin: 16px 0;
-}
-
-.post-target {
-  padding-top: 14px;
-  border-top: 1px solid #e2e8f0;
-  color: #334155;
-  font-size: 14px;
-}
-
-/* Mobile layout */
-@media (max-width: 650px) {
-  .app {
-    padding: 24px 14px;
-  }
-
-  .new-post,
-  .post-card {
-    padding: 18px;
-  }
-
-  .stock-row {
-    grid-template-columns: 1fr;
-  }
-
-  .stock-row .secondary-button {
-    justify-self: start;
-  }
-
-  .signed-in-panel,
-  .post-topline {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-
-
-/* Post management controls */
-
-.post-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0.75rem 0 1rem;
-}
-
-.post-actions button {
-  width: auto;
-}
-
-/* Separate the inline editor from the post details. */
-
-.post-card .new-post {
-  margin: 1rem 0;
-  padding: 1rem;
-  border: 1px solid var(--border-color, #d1d5db);
-  border-radius: 0.75rem;
-}
-
-.post-card .thesis-form {
-  margin-top: 1rem;
-}
-
-.post-card .thesis-form>button {
-  margin-top: 0.5rem;
-}
-
-/* Yahoo Finance market information */
-
-.market-panel {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #d1d5db;
-}
-
-.market-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.market-stats>div {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.market-stats small {
-  color: #64748b;
-}
-
-.market-stats strong {
-  font-size: 1.1rem;
-}
-
-.market-chart-section {
-  margin-top: 1rem;
-}
-
-.market-range-controls {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.market-range-controls button[aria-pressed="true"] {
-  font-weight: 700;
-  border-color: #2563eb;
-}
-
-.market-chart {
-  width: 100%;
-  height: 350px;
-  min-width: 0;
-}
-
-.market-attribution {
-  margin-top: 0.5rem;
-  font-size: 0.8rem;
-  color: #64748b;
-}
-
-.market-attribution a {
-  color: inherit;
-}
-
-
-/* Community sentiment reactions */
-
-.reaction-bar {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #d1d5db;
-}
-
-.reaction-heading {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.reaction-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.reaction-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  width: auto;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  background: transparent;
-  cursor: pointer;
-}
-
-.reaction-button.selected {
-  border-color: #2563eb;
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.reaction-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.reaction-button strong {
-  font-size: 0.85rem;
-}
-
-/* Investment thesis discussions */
-
-.reply-section {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid #d1d5db;
-}
-
-.reply-section h4 {
-  margin-bottom: 0.75rem;
-}
-
-.reply-card {
-  margin-bottom: 0.75rem;
-  padding: 0.85rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.6rem;
-}
-
-.reply-content {
-  white-space: pre-wrap;
-  margin: 0.75rem 0;
-}
-
-.reply-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.reply-actions button,
-.reply-history button {
-  width: auto;
-}
-
-.reply-history {
-  margin: 0.75rem 0;
-}
-
-.reply-history ol {
-  margin: 0.75rem 0;
-  padding-left: 1.5rem;
-}
-
-.reply-history li {
-  margin-bottom: 0.65rem;
-}
-
-.reply-history li p {
-  white-space: pre-wrap;
-}
-
-.reply-history small {
-  color: #64748b;
-}
-
-.reply-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.reply-form button {
-  width: fit-content;
-}
-
-
-/* ThesisHub — Feed search and discovery */
-
-.feed-filters {
-  margin: 1.25rem 0;
-  padding: 1.25rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.75rem;
-}
-
-.feed-filter-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,
-      minmax(min(100%, 190px), 1fr));
-  gap: 1rem;
-}
-
-.feed-filter-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  font-weight: 600;
-}
-
-.feed-filter-grid input,
-.feed-filter-grid select {
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-  padding: 0.7rem;
-  border: 1px solid #94a3b8;
-  border-radius: 0.5rem;
-  font: inherit;
-  background: #fff;
-  color: #0f172a;
-}
-
-.feed-filter-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.feed-filter-actions button {
-  width: auto;
-}
-
-.feed-results-count {
-  margin: 1rem 0;
-  font-size: 0.9rem;
-  color: #64748b;
-}
-
-.feed-engagement {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin: 0.75rem 0;
-  font-size: 0.85rem;
-  color: #475569;
-}
-
-.feed-engagement strong {
-  color: #0f172a;
-}
-
-
-/* Structured investment thesis fields */
-
-.structured-thesis-fields,
-.structured-thesis-view {
-  margin: 1rem 0;
-  padding: 1rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.75rem;
-}
-
-.structured-thesis-fields summary,
-.structured-thesis-view summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.structured-thesis-fields-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-top: 1rem;
-}
-
-.structured-thesis-fields-content label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.structured-thesis-fields-content input,
-.structured-thesis-fields-content select,
-.structured-thesis-fields-content textarea {
-  width: 100%;
-  padding: 0.7rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  font: inherit;
-}
-
-.structured-thesis-view-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-top: 1rem;
-}
-
-.structured-thesis-view-content p {
-  margin: 0.35rem 0 0;
-  white-space: pre-wrap;
-  line-height: 1.6;
+  display: inline-flex; justify-content: center; align-items: center;
+  background: #fff; border: 1px solid #d5dfed; color: #466083;
+  border-radius: 9px; padding: 8px 12px; font-size: 12px; font-weight: 700;
+}
+.secondary-button:hover:not(:disabled) { background: #f0f5fc; border-color: #b5c8e6; }
+.message { border-radius: 9px; padding: 10px 12px; font-size: 13px; }
+.error { color: #9b2c34; background: #fff0f1; }
+.success { color: #196a45; background: #e4f8ed; }
+.field-hint { font-size: 12px; font-weight: 400; line-height: 1.5; color: #7a8aa2; margin: 4px 0; }
+
+.composer-panel { margin-bottom: 25px; overflow: hidden; scroll-margin-top: 90px; }
+.composer-panel > summary {
+  display: flex; align-items: center; gap: 13px; list-style: none; padding: 16px 20px;
+}
+.composer-panel > summary::-webkit-details-marker { display: none; }
+.composer-panel > summary:hover { background: #fafcff; }
+.composer-panel .composer-icon {
+  width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 23px; font-weight: 400;
+  background: #edf3ff; color: #245ec9;
+}
+.composer-panel > summary span:nth-child(2) { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.composer-panel > summary strong { font-size: 15px; }
+.composer-panel > summary small { font-size: 12px; color: #8190a5; font-weight: 400; }
+.composer-cta { margin-left: auto; font-size: 12px; font-weight: 700; color: #245ec9; white-space: nowrap; }
+.composer-panel[open] { padding-bottom: 16px; }
+.composer-panel[open] > summary { border-bottom: 1px solid #e5ebf3; }
+.composer-panel > .new-post { margin: 0; border: none; border-radius: 0; padding: 20px; box-shadow: none; }
+
+.new-post { padding: 20px; }
+.new-post h2 { font-size: 18px; margin: 0 0 16px; }
+.thesis-form { gap: 15px; }
+.thesis-form textarea { min-height: 95px; }
+.thesis-form .submit-button { align-self: flex-start; }
+.stocks-fieldset { min-width: 0; border: 1px solid #dce4f0; border-radius: 11px; padding: 12px 15px; margin: 0; }
+.stocks-fieldset legend { font-weight: 700; font-size: 13px; color: #43536c; padding: 0 7px; }
+.stock-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) auto; align-items: end; gap: 10px; margin: 10px 0; }
+.stock-row label { min-width: 0; }
+
+.feed { scroll-margin-top: 88px; min-width: 0; }
+.feed h2 { font-size: 24px; letter-spacing: -.03em; margin: 0; }
+.feed-subtitle { font-size: 13px; color: #8190a4; margin: 6px 0 18px; }
+.feed-filters { padding: 18px; display: block; margin-bottom: 18px; }
+.feed-filter-grid { display: grid; gap: 11px; }
+.feed-filter-primary { grid-template-columns: minmax(0, 1.5fr) minmax(170px,1fr); }
+.feed-filter-advanced { grid-template-columns: repeat(2,minmax(0,1fr)); margin-top: 14px; }
+.feed-filter-more { border-top: 1px solid #e9edf5; margin-top: 13px; padding-top: 10px; }
+.feed-filter-more summary { font-weight: 700; font-size: 12px; color: #315ca2; }
+.feed-filter-more summary span { margin-left: 8px; color: #8694a8; font-weight: 400; }
+.feed-filter-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.feed-filter-actions button { width: auto; }
+.feed-results-count { margin: 0 0 13px; font-size: 12px; color: #8492a6; }
+.empty-feed { padding: 30px; background: white; border: 1px dashed #cbd8e8; border-radius: 14px; color: #8190a4; text-align: center; }
+
+.post-card { padding: 22px; margin-bottom: 16px; overflow-wrap: anywhere; }
+.post-topline { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: #8b99ad; font-size: 12px; }
+.post-topline strong { color: #3d5b85; }
+.post-title { font-size: 20px; line-height: 1.42; letter-spacing: -.02em; color: #17283f; margin: 11px 0; }
+.post-actions { display: flex; flex-wrap: wrap; gap: 7px; margin: 6px 0 12px; }
+.post-actions button { padding: 5px 9px; font-size: 11px; }
+.conviction-label { display: inline-flex; align-items: center; gap: 4px; margin: 1px 0 12px; padding: 5px 9px; border-radius: 7px; background: #f0f3fa; font-size: 11px; color: #62738c; }
+.conviction-label strong { color: #375778; }
+.conviction-label[data-level="HIGH"] { color: #1f7855; background: #e6f6ee; }
+.conviction-label[data-level="HIGH"] strong { color: #1f7855; }
+.conviction-label[data-level="LOW"] { color: #aa6830; background: #fff2e5; }
+.conviction-label[data-level="LOW"] strong { color: #aa6830; }
+.post-stocks { display: flex; flex-wrap: wrap; gap: 7px; list-style: none; padding: 0; margin: 1px 0 13px; }
+.post-stocks li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; background: #edf3ff; border: 1px solid #dce7fb; border-radius: 8px; font-size: 12px; color: #516583; }
+.post-stocks li strong { color: #2156b3; }
+.primary-ticker { font-size: 10px; font-weight: 700; color: #6d7d94; text-transform: uppercase; }
+.post-target { color: #526884; background: #f6f9ff; padding: 10px 12px; border-radius: 9px; font-size: 13px; margin: 9px 0; }
+.post-target strong { color: #1b3f77; }
+.post-description-disclosure { border-top: 1px solid #edf1f6; padding: 11px 0 2px; margin: 10px 0; }
+.post-description-disclosure summary { font-size: 13px; font-weight: 700; color: #315da3; }
+.post-description { white-space: pre-wrap; line-height: 1.65; font-size: 14px; color: #4c607e; margin: 12px 0; }
+.feed-engagement { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: #8896aa; margin: 13px 0 2px; }
+.feed-engagement strong { color: #526787; font-weight: 600; }
+.post-card .new-post { width: 100%; margin: 13px 0; border: 1px solid #dce5f2; background: #f9fbff; box-shadow: none; padding: 15px; border-radius: 11px; }
+
+.market-panel { margin-top: 14px; padding-top: 14px; border-top: 1px solid #ebeff6; }
+.market-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.market-stats > div { padding: 10px 12px; background: #f6f9fd; border-radius: 9px; min-width: 120px; display: flex; flex-direction: column; gap: 4px; }
+.market-stats small { font-size: 10px; color: #7c8ca2; }
+.market-stats strong { font-size: 15px; color: #1b3c6b; }
+.market-chart-section { margin-top: 12px; }
+.market-range-controls { display: flex; gap: 7px; margin-bottom: 8px; }
+.market-range-controls button[aria-pressed="true"] { background: #eaf1ff; border-color: #8baae5; color: #2456a5; }
+.market-chart { width: 100%; height: 330px; min-width: 0; }
+.market-attribution { font-size: 11px; color: #8695a9; margin: 8px 0 0; }
+.market-attribution a { color: inherit; }
+
+.structured-thesis-fields, .structured-thesis-view { border: 1px solid #e3e9f3; padding: 13px 15px; border-radius: 10px; margin: 13px 0; }
+.structured-thesis-fields summary, .structured-thesis-view summary { color: #395c8f; font-size: 13px; font-weight: 700; }
+.structured-thesis-fields-content, .structured-thesis-view-content { display: flex; flex-direction: column; gap: 13px; padding-top: 13px; }
+.structured-thesis-fields-content input, .structured-thesis-fields-content select, .structured-thesis-fields-content textarea { width: 100%; }
+.structured-thesis-view-content strong { font-size: 12px; color: #42658f; }
+.structured-thesis-view-content p { margin: 5px 0 0; white-space: pre-wrap; line-height: 1.6; font-size: 13px; color: #536780; }
+
+.reaction-bar { margin-top: 15px; padding-top: 15px; border-top: 1px solid #e8edf4; }
+.reaction-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 11px; font-size: 12px; color: #76869d; }
+.reaction-heading strong { color: #475f80; }
+.reaction-buttons { display: flex; flex-wrap: wrap; gap: 7px; }
+.reaction-button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #e0e7f1; background: #fafcff; padding: 7px 10px; border-radius: 9px; font-size: 11px; color: #526683; }
+.reaction-button strong { font-size: 11px; color: #345b94; }
+.reaction-button:hover:not(:disabled) { background: #edf4ff; }
+.reaction-button.selected { border-color: #88abe6; background: #eaf2ff; color: #214f97; }
+
+.discussion-disclosure { border-top: 1px solid #e8edf4; margin-top: 14px; padding-top: 13px; }
+.discussion-disclosure > summary { font-weight: 700; font-size: 13px; color: #42618d; }
+.discussion-disclosure > summary span { margin-left: 8px; font-size: 11px; font-weight: 400; color: #8998ac; }
+.reply-section { margin-top: 13px; padding-top: 8px; }
+.reply-section h4 { margin-bottom: 12px; font-size: 13px; }
+.reply-card { background: #f9fbff; border: 1px solid #e3eaf5; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.reply-content, .reply-history li p { white-space: pre-wrap; font-size: 13px; color: #445d7b; line-height: 1.6; }
+.reply-content { margin: 9px 0; }
+.reply-actions, .reply-history { display: flex; gap: 7px; flex-wrap: wrap; margin: 9px 0; }
+.reply-history { display: block; }
+.reply-history ol { margin: 9px 0 0; padding-left: 22px; }
+.reply-history li { margin: 8px 0; }
+.reply-history small { font-size: 11px; color: #8595a9; }
+.reply-form { margin-top: 12px; }
+.reply-form button { align-self: flex-start; }
+
+@media (max-width: 1000px) {
+  .app-workspace { grid-template-columns: minmax(0,1fr) 250px; gap: 16px; width: calc(100% - 28px); }
+  .app-header-inner { padding: 14px; }
+  .post-card { padding: 18px; }
+}
+@media (max-width: 760px) {
+  .app-workspace { display: flex; flex-direction: column; width: calc(100% - 24px); gap: 16px; margin: 17px auto; }
+  .app-primary, .app-sidebar { width: 100%; }
+  .app-sidebar { order: -1; position: static; }
+  .sidebar-help { display: none; }
+  .signed-in-panel { flex-direction: row; justify-content: space-between; align-items: center; }
+  .auth-card { max-width: none; }
+  .feed-filter-primary { grid-template-columns: 1fr 1fr; }
+  .composer-panel { margin-bottom: 18px; }
+}
+@media (max-width: 520px) {
+  .app-header-inner { padding: 12px; }
+  .brand-mark { width: 36px; height: 36px; flex-basis: 36px; }
+  .app-header h1 { font-size: 20px; }
+  .app-header p { display: none; }
+  .header-nav { gap: 3px; }
+  .header-nav a { padding: 7px; font-size: 11px; }
+  .post-card { padding: 16px; }
+  .post-title { font-size: 18px; }
+  .feed-filter-primary, .feed-filter-advanced, .stock-row { grid-template-columns: 1fr; }
+  .composer-panel > summary { padding: 13px; }
+  .composer-cta { font-size: 11px; }
+  .market-stats > div { flex: 1 1 120px; }
 }
