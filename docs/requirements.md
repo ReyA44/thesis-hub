@@ -1,112 +1,54 @@
+# ThesisHub — Final MVP Requirements and Scope
 
-# ThesisHub — Product Requirements
+**Status:** Implemented local-first course MVP (pending final user browser acceptance).
 
-**Version:** 0.1
-**Status:** Draft
-**Project type:** Full-stack web application
+## Product goal
 
-## 1. Product Goal
+Enable people to publish clear, structured stock-investment ideas and discuss them in a shared feed. No brokerage access, holdings or personal portfolio data are collected.
 
-Build a social platform for sharing structured stock-market investment theses, encouraging clear reasoning, discussion, and accountability.
+## Requirements traceability
 
-## 2. Core Features
+| Requirement | Status | Implementation |
+|---|---|---|
+| Register, login, logout | Implemented | `auth.js`, `App.jsx`; JWT valid for 2h |
+| Only authors can modify posts | Implemented | `requireAuth.js`, `posts.js` ownership checks |
+| Title, conviction, primary stock | Implemented | `ThesisForm.jsx`, `posts.js` |
+| Optional thesis details | Implemented | `StructuredThesisFields.jsx`, Prisma `ThesisPost` |
+| Multiple tickers | Implemented | Prisma `Stock` + `PostStock` |
+| Price target and upside/downside | Implemented | Primary ticker only; market quote and `MarketPanel.jsx` |
+| Publication-price snapshot | Implemented conditionally | Last fresh regular-market quote at creation, or null |
+| Performance since publication | Implemented conditionally | Market quote vs saved snapshot in `MarketPanel.jsx` |
+| YTD / 1Y chart | Implemented | TradingView embed; user opens chart |
+| Five exclusive sentiment reactions | Implemented | `Reaction` uniqueness plus `reactions.js` |
+| One editable reply and visible revisions | Implemented | `Reply`, `ReplyRevision`, transactional update |
+| Public feed and structured discovery | Implemented within limits | `discoverPosts.js`, `ThesisFeed.jsx` |
+| Automated tests | Implemented | Node unit tests + isolated HTTP/PostgreSQL integration test in CI |
+| Exception handling / logging | Implemented | Request IDs, structured HTTP logs, JSON error handling |
+| Meaningful names, modular structure | Implemented, reviewable | Route/service/component modules and comments |
+| Local browser verification | Pending final user walkthrough | `docs/testing.md` |
 
-### Users
-- Register, log in, and log out.
-- Authenticated users can create posts and interact with others.
-- Users can edit or delete their own posts.
+## Explicitly deferred from original brainstorm
 
-### Thesis Posts
-Required fields:
-- Thesis title (one sentence maximum)
-- At least one company name and ticker
-- Conviction: Low / Medium / High
+- Tag entities and tag filters
+- Structured supporting-source links
+- Price-target upside/downside **filtering** (display is supported)
+- Individually dated catalyst records (current catalysts are text)
+- Dedicated full post page; current feed shows details inline
+- Unlimited results / pagination / globally comprehensive popularity ranking
+- Public deployment, hosting, dashboards, user profiles, AI thesis analysis
 
-Optional fields:
-- Full thesis
-- Price target
-- Time horizon and target timeframe
-- Catalysts and dates
-- Thesis invalidation conditions
-- Suggested strategy and reasoning
-- Main risks
-- Market misunderstanding / opportunity
-- Counter-thesis
-- Sources
-- Tags
+These are not silently claimed as completed. See [original development history](https://github.com/ReyA44/thesis-hub/pulls) for the incremental planning and PRs.
 
-### Market Data
-- Retrieve stock prices from a free external API.
-- Display a 1Y/YTD chart for the primary ticker.
-- Store the stock price at publication.
-- Calculate performance since publication.
-- Calculate percentage upside/downside when a target exists.
+## Constraints and safety
 
-### Reactions
-Five mutually exclusive reactions:
-- Rocket — TO THE MOON
-- Bull — Bullish
-- Neutral — Neutral
-- Bear — Bearish
-- Empty bag — Bag Holder
+- Free local development tooling; no sensitive financial connections
+- Password hashes, never plaintext passwords
+- Server-side authentication, authorization and input validation
+- Secrets remain in ignored environment files
+- Upstream finance quotes can be delayed or unavailable; no claim of real-time exchange-quality prices
+- Unofficial Yahoo Finance usage is intended for an educational local demo
+- Market content is users' opinions, not investment advice
 
-Each user can select or change one reaction per post.
+## Definition of done
 
-### Replies
-- One reply per user per post.
-- Replies can be edited.
-- Every previous version is preserved.
-- Edit history is publicly accessible.
-- Users can only modify their own replies.
-
-### Public Feed
-- One common feed for all users.
-- Sort: newest, oldest, popularity, most discussed.
-- Popularity = reactions + 5 × replies.
-
-### Search & Filters
-- Company name
-- Stock ticker
-- Tag
-- Author
-- Conviction
-- Reaction sentiment
-- Post date
-- Percentage upside/downside to target
-
-No full-text thesis search.
-
-## 3. Technical Requirements
-
-- React + Vite frontend
-- Node.js + Express REST API
-- PostgreSQL + Prisma database
-- JWT authentication and bcrypt password hashing
-- Modular external market-data service
-- Input validation and authorization
-- Automated testing
-- Git/GitHub version control
-
-## 4. Project Constraints
-
-- Free development tools and API tiers
-- No brokerage integration
-- No personal trading or portfolio data
-- API keys and other secrets excluded from Git
-- Publicly presentable repository
-
-## 5. Future Features (Not MVP)
-
-- Following users
-- Notifications
-- Watchlists
-- Leaderboards
-- AI thesis analysis
-- Advanced analytics
-
-## 6. Change Management
-
-Requirements may evolve during development.
-
-Significant changes should be documented through
-GitHub Issues, commits, and updated documentation.
+Code merged through PR with green CI, matching documentation, and a final browser walkthrough of registration, publishing, editing, filtering, reacting, replying and deleting.

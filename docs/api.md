@@ -1,362 +1,82 @@
+# ThesisHub — Implemented REST API
 
-# ThesisHub — API Documentation
+**Base:** `http://localhost:3000/api` (development). JSON responses. Protected writes require `Authorization: Bearer <JWT>`.
 
-Base URL: `http://localhost:3000`
+## Endpoints
 
-## Health Checks
-
-| Method | Endpoint | Description | Success |
+| Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | /api/health | Check Express server | 200 |
-| GET | /api/health/db | Check PostgreSQL connection | 200 |
+| GET | `/health` | No | API status |
+| GET | `/health/db` | No | PostgreSQL connectivity |
+| POST | `/auth/register` | No | Register username/email/password |
+| POST | `/auth/login` | No | Return JWT and public user profile |
+| GET | `/auth/me` | Yes | Resolve current account |
+| GET | `/posts` | No | Search/sort latest posts |
+| GET | `/posts/:id` | No | Get one post |
+| POST | `/posts` | Yes | Create thesis |
+| PATCH | `/posts/:id` | Owner | Partially update thesis |
+| DELETE | `/posts/:id` | Owner | Delete thesis and dependent interactions |
+| GET | `/market/:ticker` | No | Yahoo quote and optional target calculation |
+| GET | `/market/usage` | No | In-process cache/provider counters |
+| GET | `/posts/:postId/reactions` | No | Counts and authenticated user's reaction, if JWT supplied |
+| PUT | `/posts/:postId/reaction` | Yes | Create/replace sentiment |
+| DELETE | `/posts/:postId/reaction` | Yes | Remove own sentiment |
+| GET | `/posts/:postId/replies` | No | Replies, usernames and revision history |
+| POST | `/posts/:postId/reply` | Yes | Create own single reply |
+| PATCH | `/posts/:postId/reply` | Yes | Edit own reply and save previous text |
+| DELETE | `/posts/:postId/reply` | Yes | Delete own reply and revision history |
 
-## Authentication
+## Account requests
 
-### POST /api/auth/register
+`POST /auth/register`: `{ "username": "sample_user", "email": "sample@example.com", "password": "at-least-12-characters" }`. Username 3–30 lowercase letters/digits/underscores; valid email; password at least 12 characters and at most 72 UTF-8 bytes. Registration returns `201 { user }` and does **not** log the user in.
 
-Create a new account.
+`POST /auth/login`: `{ "email": "...", "password": "..." }`; response `{ "token": "...", "user": { "id": "...", "username": "...", "email": "..." } }`. Token expires in two hours. `GET /auth/me` returns `{ user }`.
 
-Request body:
-```json
-{
-  "username": "demo_user",
-  "email": "demo@example.com",
-  "password": "example-password-123!"
-}
-```
-
-Responses:
-- 201 Created — Account created successfully.
-- 400 Bad Request — Invalid registration input.
-- 409 Conflict — Username or email already exists.
-- 500 Internal Server Error — Unexpected server failure.
-
-The response never includes the password or password hash.
-
-### POST /api/auth/login
-
-Authenticate an existing user.
-
-Request body:
-```json
-{
-  "email": "demo@example.com",
-  "password": "example-password-123!"
-}
-```
-
-Responses:
-- 200 OK — Returns JWT and public user information.
-- 400 Bad Request — Missing or invalid input types.
-- 401 Unauthorized — Invalid credentials.
-- 500 Internal Server Error — Unexpected server failure.
-
-JWT lifetime: 2 hours.
-
-### GET /api/auth/me
-
-Retrieve the authenticated user's profile.
-
-Required header:
-`Authorization: Bearer <token>`
-
-Responses:
-- 200 OK — Returns public account information.
-- 401 Unauthorized — Missing, invalid, or expired token.
-- 500 Internal Server Error — Unexpected server failure.
-
-## Security Notes
-
-- Passwords are hashed using bcrypt.
-- JWTs are signed using a secret stored in server/.env.
-- Protected endpoints verify JWT signatures and expiration.
-- Password hashes and signing secrets are never returned.
-- Logout currently means discarding the JWT on the client.
-- Production deployment will require further security hardening.
-
-
-## Investment Theses
-
-### POST /api/posts
-
-Create an investment thesis.
-
-Authentication: Required (Bearer JWT).
-
-Required fields:
-- `title`: Single-line string (1-180 characters)
-- `conviction`: LOW, MEDIUM, or HIGH
-- `stocks`: Array of 1-10 stocks, each with ticker and companyName
-
-Optional fields:
-- `fullThesis`: Detailed analysis (up to 10,000 characters)
-- `priceTarget`: Positive decimal string
-
-Example request:
+## Thesis payload
 
 ```json
 {
-  "title": "Microsoft may benefit from enterprise AI demand",
+  "title": "Why the company may outperform",
   "conviction": "HIGH",
-  "stocks": [
-    {"ticker": "MSFT", "companyName": "Microsoft"},
-    {"ticker": "NVDA", "companyName": "NVIDIA"}
-  ],
-  "fullThesis": "A sample investment thesis.",
-  "priceTarget": "650.00"
+  "stocks": [{ "ticker": "MSFT", "companyName": "Microsoft" }],
+  "fullThesis": "Optional longer discussion",
+  "priceTarget": "450.00",
+  "timeHorizon": "LONG_TERM",
+  "targetTimeframe": "2027-09-01",
+  "catalysts": "Product launches",
+  "invalidation": "Revenue decline",
+  "strategy": "Shares",
+  "strategyReason": "Long holding period",
+  "mainRisks": "Competition",
+  "marketMissing": "Undervalued margin growth",
+  "counterThesis": "Demand may slow"
 }
 ```
 
-Responses:
-- 201 Created
-- 400 Bad Request
-- 401 Unauthorized
-- 500 Internal Server Error
+Required: single-line nonempty title (max 180 chars), conviction `LOW`/`MEDIUM`/`HIGH`, 1–10 distinct tickers with company names. The API enforces **one line**, not a semantic sentence classifier.
 
-The first stock is the primary ticker.
+Optional numeric `priceTarget` is a **positive decimal string** with up to four fractional digits and applies only to the first ticker. `timeHorizon` is `SHORT_TERM`, `MEDIUM_TERM`, `LONG_TERM`; `targetTimeframe` is `YYYY-MM-DD`. Other optional detail fields accept bounded text. On PATCH, omitted keys remain unchanged; null/empty values clear optional fields.
 
-### GET /api/posts
+Response to POST: `201 { "post": ... }`. A post contains an ordered `stocks` array, `author`, and optional `priceAtPublication` / `priceCapturedAt`. Snapshot values can be null if the upstream quote was unavailable. PATCH returns `{ post }`; DELETE returns 204 with no body.
 
-Retrieve the public thesis feed.
+## Public discovery
 
-Authentication: Not required.
+`GET /posts?q=MSFT&author=alice&conviction=HIGH&sentiment=BULLISH&age=30d&sort=popular`
 
-Returns up to 25 posts, newest first, including
-author information and ordered stock tickers.
+All filters are optional. `q` searches **ticker or company name**, not thesis text. `age`: `all`, `7d`, `30d`, `90d`, `365d`. `sort`: `newest`, `oldest`, `popular`, `discussed`. Response: `{ posts: [...] }`, up to 25 results. `popularityScore = reactionCount + 5 * replyCount`. Popular sorts only the 200 newest matching candidates. Invalid filters return 400.
 
-Response: 200 OK.
+## Market quote
 
-### GET /api/posts/:id
+`GET /market/MSFT?target=450.00` returns `ticker`, `price`, `currency`, `companyName`, `priceTime`, `fetchedAt`, `cached`, `stale`, optional `priceTarget`, and `upsidePercent` = `(target / price - 1) × 100` (rounded to two decimal places). Market-data failure returns 503 when no usable cache exists. Prices may be delayed.
 
-Retrieve an individual thesis by its ID.
+## Reactions and replies
 
-Authentication: Not required.
+`PUT /posts/:postId/reaction`: `{ "type": "BULLISH" }`; possible enum values `ROCKET`, `BULLISH`, `NEUTRAL`, `BEARISH`, `BAG_HOLDER`. One reaction per user/post.
 
-Responses:
-- 200 OK — Thesis found
-- 404 Not Found — Thesis does not exist
-- 500 Internal Server Error
-```
+`POST/PATCH /posts/:postId/reply`: `{ "content": "My reasoning" }`; nonempty, max 3000 characters. GET returns `{ replies: [...] }`, each with `user`, `content`, timestamps and `revisions`. History contains previous versions only. A second POST on the same post by the same user returns 409.
 
-## Update a Thesis
+## Errors and observability
 
-**PATCH** `/api/posts/:id`
+Common status codes: 400 invalid input, 401 missing/invalid token, 403 another author's post, 404 missing resource, 409 duplicate, 413 oversized JSON body, 429 rate limiting, 500 unexpected backend error, 503 upstream or database unavailable. Errors use `{ "error": "..." }`. Every API response includes `X-Request-ID` for log correlation. Invalid JSON receives a JSON 400 instead of a stack trace.
 
-Authentication: Required (JWT)
-
-Only the original author can update a thesis.
-
-### Example request
-
-```json
-{
-  "title": "Updated investment thesis",
-  "conviction": "HIGH",
-  "fullThesis": "Updated investment reasoning.",
-  "priceTarget": "120.00",
-  "stocks": [
-    {
-      "ticker": "MSFT",
-      "companyName": "Microsoft"
-    }
-  ]
-}
-```
-
-All fields are optional, but at least one allowed field must
-be provided. Omitted fields remain unchanged.
-
-Supplying `stocks` replaces the existing stock associations.
-The first ticker is the primary ticker.
-
-### Responses
-
-- `200 OK` — Returns `{ "post": ... }`
-- `400 Bad Request` — Invalid fields or values
-- `401 Unauthorized` — Missing, invalid, or expired JWT
-- `403 Forbidden` — The user is not the author
-- `404 Not Found` — Thesis does not exist
-- `500 Internal Server Error` — Unexpected server failure
-
-## Delete a Thesis
-
-**DELETE** `/api/posts/:id`
-
-Authentication: Required (JWT)
-
-Only the original author can permanently delete a thesis.
-
-Related post-stock associations, replies, reply revisions,
-and reactions are deleted within a database transaction.
-Shared stock records and user accounts are preserved.
-
-### Responses
-
-- `204 No Content` — Thesis deleted successfully
-- `401 Unauthorized` — Missing, invalid, or expired JWT
-- `403 Forbidden` — The user is not the author
-- `404 Not Found` — Thesis does not exist
-- `500 Internal Server Error` — Unexpected server failure
-```
-
-## Market Data API
-
-### GET /api/market/:ticker
-
-Retrieves a Yahoo Finance stock quote through the Express
-backend. No authentication is required.
-
-Optional query parameter:
-
-- `target` — Positive decimal price target.
-
-Example:
-
-`GET /api/market/PENG?target=100`
-
-Successful response:
-
-```json
-{
-  "ticker": "PENG",
-  "price": 51.93,
-  "currency": "USD",
-  "companyName": "Penguin Solutions, Inc.",
-  "priceTime": "2026-10-30T20:00:00.000Z",
-  "stale": false,
-  "cached": true,
-  "priceTarget": 100,
-  "upsidePercent": 92.57
-}
-```
-
-The response also includes `fetchedAt`.
-
-Prices are cached in memory for 24 hours. A cached quote
-can be served after expiry if Yahoo Finance is unavailable.
-
-Responses:
-- 200 — Quote retrieved or served from cache
-- 400 — Invalid ticker or target
-- 503 — Market data unavailable and no cached quote exists
-
-### GET /api/market/usage
-
-Returns basic monitoring counters:
-
-- `providerRequests`
-- `cacheHits`
-- `failures`
-- `cachedTickers`
-- `pendingRequests`
-- `lastSuccessAt`
-
-These counters reset when the server restarts.
-
-This endpoint is for educational demonstration and should
-not expose operational details publicly in a production app.
-
-### Price Target Calculation
-
-`upsidePercent = ((priceTarget / price) - 1) * 100`
-
-A negative result indicates downside.
-
-
-## Reactions API
-
-### GET /api/posts/:postId/reactions
-
-Public endpoint. Returns reaction counts for all five types,
-total reactions, and the current user's selection when an
-optional valid JWT is provided.
-
-Reaction types:
-- ROCKET
-- BULLISH
-- NEUTRAL
-- BEARISH
-- BAG_HOLDER
-
-### PUT /api/posts/:postId/reaction
-
-Requires JWT.
-
-Request body:
-
-```json
-{
-  "type": "BULLISH"
-}
-```
-
-Creates or replaces the current user's reaction.
-Returns 200 with the saved reaction.
-
-### DELETE /api/posts/:postId/reaction
-
-Requires JWT.
-
-Removes the current user's reaction.
-Returns 204 with no body.
-
-A database uniqueness constraint enforces one reaction per
-user per thesis.
-
-## Replies API
-
-### GET /api/posts/:postId/replies
-
-Public endpoint.
-
-Returns replies with author information and previous versions
-in chronological order.
-
-### POST /api/posts/:postId/reply
-
-Requires JWT.
-
-Request body:
-
-```json
-{
-  "content": "I disagree because the valuation is too high."
-}
-```
-
-Creates a reply. Content must contain 1-3000 characters.
-
-Returns:
-- 201 — Reply created
-- 400 — Invalid content
-- 401 — Authentication required
-- 404 — Thesis not found
-- 409 — User already has a reply on this thesis
-
-### PATCH /api/posts/:postId/reply
-
-Requires JWT.
-
-Updates the current user's reply and preserves the previous
-content in ReplyRevision.
-
-Returns 200 with the updated reply and revisions.
-
-### DELETE /api/posts/:postId/reply
-
-Requires JWT.
-
-Permanently deletes the current user's reply and its revision
-history.
-
-Returns 204 on success, 404 if no reply exists.
-
-## Interaction Rules
-
-- One reaction per user per thesis.
-- One reply per user per thesis.
-- Users can change or remove their reaction.
-- Users can edit or delete only their own reply.
-- Existing reply edit histories are publicly visible.
-- Authorization is enforced by the backend.
-
+No public deployment is configured.
