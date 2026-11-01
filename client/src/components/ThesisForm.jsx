@@ -417,11 +417,6 @@ export default function ThesisForm({
                 {/* Optional: primary ticker price target */}
                 <label htmlFor="price-target">
                     Price target — primary ticker (optional)
-                    <StructuredThesisFields
-                        value={details}
-                        onChange={setDetails}
-                        disabled={loading}
-                    />
 
                     <input
                         id="price-target"
@@ -435,6 +430,13 @@ export default function ThesisForm({
                         disabled={loading}
                     />
                 </label>
+
+                {/* Optional structured investment details */}
+                <StructuredThesisFields
+                    value={details}
+                    onChange={setDetails}
+                    disabled={loading}
+                />
 
                 {error && (
                     <p className="message error" role="alert">
