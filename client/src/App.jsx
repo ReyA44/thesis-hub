@@ -16,7 +16,7 @@ import ThesisForm from "./components/ThesisForm.jsx";
 import ThesisFeed from "./components/ThesisFeed.jsx";
 
 // Local Express API.
-const API_URL = "http://localhost:3000";
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
 function App() {
   // Which authentication form is displayed.

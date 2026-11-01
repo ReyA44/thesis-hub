@@ -21,6 +21,7 @@ import express from "express";
 
 // Import CORS middleware to permit requests from our React app.
 import cors from "cors";
+import { rateLimit } from "./middleware/rateLimit.js";
 
 import { prisma } from "./db.js";
 
@@ -56,11 +57,15 @@ const PORT = process.env.PORT || 3000;
 // This configuration allows the browser to make requests
 // from our React frontend to the Express backend.
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
 }));
 
 // Tell Express to parse JSON request bodies.
-app.use(express.json());
+app.use(express.json({ limit: "64kb" }));
+
+// Protect public write endpoints and the upstream market-data provider.
+app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, limit: 30 }));
+app.use("/api/market", rateLimit({ windowMs: 60 * 1000, limit: 60 }));
 
 /**
  * GET /api/health
