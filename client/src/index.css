@@ -77,7 +77,8 @@ summary::marker { color: #6c7e99; }
 .sidebar-help strong { font-size: 13px; color: #27487a; }
 .sidebar-help p { font-size: 12px; margin: 7px 0 0; line-height: 1.6; color: #607798; }
 .app-footer { text-align: center; padding: 10px 12px 28px; color: #8190a4; font-size: 12px; }
-.status-indicator { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #51b784; margin-right: 6px; }
+.status-indicator { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #acb5c4; margin-right: 6px; }
+.status-indicator.is-connected { background: #51b784; }
 
 .submit-button {
   display: inline-flex; justify-content: center; align-items: center;

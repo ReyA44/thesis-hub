@@ -403,7 +403,7 @@ function App() {
       </div>
 
       <footer className="app-footer">
-        <span className="status-indicator" aria-hidden="true"></span>
+        <span className={`status-indicator ${apiStatus === "Backend connected" ? "is-connected" : ""}`} aria-hidden="true"></span>
         {apiStatus} · Local project demo
       </footer>
     </main>
