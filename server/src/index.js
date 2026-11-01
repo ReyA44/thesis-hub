@@ -26,6 +26,8 @@ import { prisma } from "./db.js";
 
 import { authRouter } from "./routes/auth.js";
 
+import { postsRouter } from "./routes/posts.js";
+
 // Create an Express application instance.
 // 'app' is the main object used to configure our server.
 const app = express();
@@ -125,6 +127,9 @@ app.get("/api/health/db", async (req, res) => {
 
 // Mount authentication endpoints under /api/auth.
 app.use("/api/auth", authRouter);
+
+// Public reading and authenticated publishing endpoints.
+app.use("/api/posts", postsRouter);
 
 
 

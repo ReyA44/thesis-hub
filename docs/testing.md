@@ -106,3 +106,19 @@ All seven browser tests passed:
 
 Note: JWTs are currently stored in React memory only.
 Persistent sessions are deferred to a future milestone.
+
+
+## Posts API — Manual Testing
+
+| Test | Expected | Result |
+|---|---|---|
+| Retrieve public feed | 200 | Passed |
+| Publish without JWT | 401 | Passed |
+| Publish valid thesis with JWT | 201 | Passed |
+| Retrieve published thesis in feed | 200 | Passed |
+| Submit thesis with empty stocks | 400 | Passed |
+| Retrieve individual thesis by ID | 200 | Passed |
+
+Tests use the development PostgreSQL database.
+Automated integration tests are deferred.
+```
