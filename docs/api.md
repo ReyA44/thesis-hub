@@ -198,3 +198,66 @@ Shared stock records and user accounts are preserved.
 - `404 Not Found` — Thesis does not exist
 - `500 Internal Server Error` — Unexpected server failure
 ```
+
+## Market Data API
+
+### GET /api/market/:ticker
+
+Retrieves a Yahoo Finance stock quote through the Express
+backend. No authentication is required.
+
+Optional query parameter:
+
+- `target` — Positive decimal price target.
+
+Example:
+
+`GET /api/market/PENG?target=100`
+
+Successful response:
+
+```json
+{
+  "ticker": "PENG",
+  "price": 51.93,
+  "currency": "USD",
+  "companyName": "Penguin Solutions, Inc.",
+  "priceTime": "2026-10-30T20:00:00.000Z",
+  "stale": false,
+  "cached": true,
+  "priceTarget": 100,
+  "upsidePercent": 92.57
+}
+```
+
+The response also includes `fetchedAt`.
+
+Prices are cached in memory for 24 hours. A cached quote
+can be served after expiry if Yahoo Finance is unavailable.
+
+Responses:
+- 200 — Quote retrieved or served from cache
+- 400 — Invalid ticker or target
+- 503 — Market data unavailable and no cached quote exists
+
+### GET /api/market/usage
+
+Returns basic monitoring counters:
+
+- `providerRequests`
+- `cacheHits`
+- `failures`
+- `cachedTickers`
+- `pendingRequests`
+- `lastSuccessAt`
+
+These counters reset when the server restarts.
+
+This endpoint is for educational demonstration and should
+not expose operational details publicly in a production app.
+
+### Price Target Calculation
+
+`upsidePercent = ((priceTarget / price) - 1) * 100`
+
+A negative result indicates downside.

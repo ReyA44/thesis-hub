@@ -198,3 +198,37 @@ Authentication is enforced through JWT middleware.
 Post ownership is checked on the backend, independently
 of the frontend's visibility controls.
 ```
+
+## Milestone 8 — Market Data Integration
+
+### Backend
+
+- [x] Yahoo Finance returns a valid quote for PENG.
+- [x] The target upside percentage is calculated correctly.
+- [x] First request fetches external market data.
+- [x] Repeated request returns a cached quote.
+- [x] Provider request count is recorded.
+- [x] Cache-hit count is recorded.
+- [x] Failed ticker request increments the failure counter.
+- [x] Monitoring endpoint returns usage statistics.
+
+### Frontend
+
+- [x] Primary ticker displays its latest available price.
+- [x] Price timestamp is displayed.
+- [x] Price target and percentage upside/downside appear.
+- [x] TradingView chart opens successfully.
+- [x] YTD and 1Y controls change the chart range.
+- [x] Unavailable market data does not break the feed.
+
+### Build Verification
+
+- [x] npm run lint
+- [x] npm run build
+
+### Data Sources
+
+Yahoo Finance is accessed through the unofficial
+yahoo-finance2 library. TradingView provides embedded
+charts. Licensing restrictions are documented in
+docs/architecture.md.

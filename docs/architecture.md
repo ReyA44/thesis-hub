@@ -205,3 +205,54 @@ To be finalized during implementation:
 - Handling deleted replies and edit history
 - Exact database field types and validation rules
 
+
+## External Market Data and Licensing
+
+### Yahoo Finance
+
+ThesisHub uses the unofficial `yahoo-finance2` Node.js
+library to retrieve stock prices through the Express backend.
+
+- Yahoo Finance does not provide an officially supported
+  public API through this library.
+- The library's open-source license does not grant rights
+  to redistribute Yahoo Finance market data.
+- Yahoo Finance data may be subject to personal-use,
+  redistribution, and display restrictions.
+- This integration is intended for local educational
+  demonstration and is not assumed to be licensed for
+  public commercial use.
+- Public deployment with market data requires reviewing
+  the applicable provider terms and obtaining appropriate
+  data rights where necessary.
+
+### TradingView
+
+ThesisHub uses TradingView's embeddable chart widget to
+display historical stock-price charts.
+
+- The widget loads directly from TradingView.
+- ThesisHub does not extract price data from TradingView.
+- TradingView attribution and branding must be preserved.
+- Widget availability and functionality are subject to
+  TradingView's terms and third-party service availability.
+
+### Caching and Monitoring
+
+- Yahoo quotes are cached in backend memory for 24 hours.
+- Cached quotes are shared between posts using the same ticker.
+- Stale cached quotes may be served if Yahoo is unavailable.
+- Provider requests, cache hits, and failures are counted.
+- Usage counters reset whenever the Express process restarts.
+- Yahoo does not expose an official remaining-quota balance
+  through this unofficial integration.
+
+### Limitations
+
+Prices may be delayed or stale and are not intended for
+trading execution. No guarantee of data availability,
+completeness, or accuracy is provided.
+
+The market-data integration is replaceable if a licensed
+provider is required in a future version.
+

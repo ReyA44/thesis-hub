@@ -448,3 +448,63 @@ button:focus-visible {
 .post-card .thesis-form>button {
   margin-top: 0.5rem;
 }
+
+/* Yahoo Finance market information */
+
+.market-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d1d5db;
+}
+
+.market-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.market-stats>div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.market-stats small {
+  color: #64748b;
+}
+
+.market-stats strong {
+  font-size: 1.1rem;
+}
+
+.market-chart-section {
+  margin-top: 1rem;
+}
+
+.market-range-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.market-range-controls button[aria-pressed="true"] {
+  font-weight: 700;
+  border-color: #2563eb;
+}
+
+.market-chart {
+  width: 100%;
+  height: 350px;
+  min-width: 0;
+}
+
+.market-attribution {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.market-attribution a {
+  color: inherit;
+}

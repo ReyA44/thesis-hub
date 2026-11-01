@@ -13,7 +13,7 @@
  * Hiding controls is only a UI convenience.
  * The Express backend must enforce authorization.
  */
-
+import MarketPanel from "./MarketPanel.jsx";
 import { useEffect, useState } from "react";
 import ThesisForm from "./ThesisForm.jsx";
 
@@ -344,6 +344,15 @@ export default function ThesisFeed({
                                     {post.priceTarget}
                                 </strong>
                             </p>
+                        )}
+                        {/* Live-on-request market information for primary ticker. */}
+                        {post.stocks.length > 0 && (
+                            <MarketPanel
+                                key={post.stocks[0].stock.ticker}
+                                apiUrl={apiUrl}
+                                ticker={post.stocks[0].stock.ticker}
+                                priceTarget={post.priceTarget}
+                            />
                         )}
                     </article>
                 );
