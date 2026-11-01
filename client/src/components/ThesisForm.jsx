@@ -15,10 +15,8 @@
  */
 
 import { useRef, useState } from "react";
-import StructuredThesisFields, {
-    EMPTY_THESIS_DETAILS,
-    thesisDetailsFromPost,
-} from "./StructuredThesisFields.jsx";
+import StructuredThesisFields from "./StructuredThesisFields.jsx";
+import { EMPTY_THESIS_DETAILS, thesisDetailsFromPost } from "./thesisFieldUtils.js";
 
 /**
  * Build stock rows from an existing thesis.
