@@ -30,6 +30,10 @@ import { postsRouter } from "./routes/posts.js";
 
 import { marketRouter } from "./routes/market.js";
 
+import { reactionsRouter } from "./routes/reactions.js";
+
+import { repliesRouter } from "./routes/replies.js";
+
 // Create an Express application instance.
 // 'app' is the main object used to configure our server.
 const app = express();
@@ -134,6 +138,10 @@ app.use("/api/auth", authRouter);
 app.use("/api/posts", postsRouter);
 
 app.use("/api/market", marketRouter);
+
+app.use("/api/posts", reactionsRouter);
+
+app.use("/api/posts", repliesRouter);
 
 
 
