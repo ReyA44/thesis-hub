@@ -5,6 +5,8 @@
  * POST /api/posts     Create a thesis (authenticated).
  * GET  /api/posts     Retrieve the public feed.
  * GET  /api/posts/:id Retrieve a specific thesis.
+ * PATCH /api/posts/:id Edit an owned thesis.
+ * DELETE /api/posts/:id Delete an owned thesis.
  */
 
 import { Router } from "express";
