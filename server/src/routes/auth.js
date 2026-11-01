@@ -2,7 +2,7 @@
 /**
  * ThesisHub — Authentication Routes
  *
- * Handles account registration and (later) login.
+ * Handles account registration, login and profile lookup.
  */
 import jwt from "jsonwebtoken";
 import { Router } from "express";
@@ -137,6 +137,14 @@ authRouter.post("/login", async (req, res) => {
     ) {
         return res.status(400).json({
             error: "Email and password are required.",
+        });
+    }
+
+    // bcrypt ignores bytes beyond 72; reject oversized login inputs
+    // so a valid 72-byte password cannot accept an arbitrary suffix.
+    if (Buffer.byteLength(password, "utf8") > 72) {
+        return res.status(401).json({
+            error: "Invalid email or password.",
         });
     }
 

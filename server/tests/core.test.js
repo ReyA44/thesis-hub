@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { parseThesisDetails } from "../src/utils/thesisDetails.js";
+import {
+    parseThesisTitle,
+    parseThesisStocks,
+    parseThesisPriceTarget,
+} from "../src/utils/thesisInput.js";
 import { rateLimit } from "../src/middleware/rateLimit.js";
 
 test("structured details accept valid fields", () => {
@@ -28,4 +33,32 @@ test("rate limiter returns 429 after threshold", () => {
     assert.equal(nextCalls, 2);
     assert.equal(res.statusCode, 429);
     assert.match(res.body.error, /Too many/);
+});
+
+test("shared thesis validation normalizes titles and stock tickers", () => {
+    assert.equal(parseThesisTitle("  My thesis  ").value, "My thesis");
+    assert.match(parseThesisTitle("Two" + String.fromCharCode(10) + "lines").error, /single line/);
+    const stocks = parseThesisStocks([
+        { ticker: " msft ", companyName: " Microsoft " },
+        { ticker: "brk.b", companyName: "Berkshire Hathaway" },
+    ]);
+    assert.equal(stocks.error, null);
+    assert.deepEqual(stocks.value, [
+        { ticker: "MSFT", companyName: "Microsoft" },
+        { ticker: "BRK.B", companyName: "Berkshire Hathaway" },
+    ]);
+    assert.match(parseThesisStocks([
+        { ticker: "MSFT", companyName: "Microsoft" },
+        { ticker: "msft", companyName: "Microsoft" },
+    ]).error, /Duplicate/);
+    assert.match(parseThesisStocks([]).error, /1-10/);
+    assert.match(parseThesisStocks([{ ticker: "$BAD", companyName: "Example" }]).error, /valid ticker/);
+});
+
+test("shared price-target validation preserves decimal strings and empty values", () => {
+    assert.deepEqual(parseThesisPriceTarget("125.1234"), { value: "125.1234", error: null });
+    assert.deepEqual(parseThesisPriceTarget(null), { value: null, error: null });
+    assert.match(parseThesisPriceTarget("0").error, /positive/);
+    assert.match(parseThesisPriceTarget("2.12345").error, /positive/);
+    assert.match(parseThesisPriceTarget(120).error, /positive/);
 });

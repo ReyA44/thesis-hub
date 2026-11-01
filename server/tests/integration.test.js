@@ -48,10 +48,10 @@ test("HTTP API: auth, posts, permission checks, sentiment, reply revisions, disc
         let result = await api("GET", "/api/health/db");
         assert.equal(result.status, 200);
 
-        const register = async (suffix) => {
+        const register = async (suffix, password = "verysecurepassword123!") => {
             const email = `${unique}${suffix}@example.test`;
             const response = await api("POST", "/api/auth/register", {
-                username: `user_${unique}${suffix}`, email, password: "verysecurepassword123!",
+                username: `user_${unique}${suffix}`, email, password,
             });
             assert.equal(response.status, 201);
             users.push(response.data.user.id);
@@ -59,6 +59,7 @@ test("HTTP API: auth, posts, permission checks, sentiment, reply revisions, disc
         };
         const u1 = await register("a");
         const u2 = await register("b");
+        const u3 = await register("c", "a".repeat(72));
         assert.equal((await api("POST", "/api/auth/register", {
             username: `user_${unique}a`, email: u1.email, password: "verysecurepassword123!",
         })).status, 409);
@@ -72,6 +73,13 @@ test("HTTP API: auth, posts, permission checks, sentiment, reply revisions, disc
         };
         const token1 = await login(u1.email);
         const token2 = await login(u2.email);
+        // A 72-byte bcrypt password must reject any appended bytes.
+        assert.equal((await api("POST", "/api/auth/login", {
+            email: u3.email, password: "a".repeat(72) + "extra",
+        })).status, 401);
+        assert.equal((await api("POST", "/api/auth/login", {
+            email: u3.email, password: "a".repeat(72),
+        })).status, 200);
         assert.equal((await api("GET", "/api/auth/me")).status, 401);
         assert.equal((await api("GET", "/api/auth/me", undefined, token1)).status, 200);
         assert.equal((await api("POST", "/api/auth/login", {
