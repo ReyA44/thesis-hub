@@ -15,6 +15,8 @@ export default function MarketPanel({
     apiUrl,
     ticker,
     priceTarget,
+    priceAtPublication,
+    priceCapturedAt,
 }) {
     const [market, setMarket] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -169,6 +171,19 @@ export default function MarketPanel({
                             </strong>
                         </div>
 
+                        {priceAtPublication != null &&
+                            Number(priceAtPublication) > 0 && (
+                            <div>
+                                <small>Change since publication</small>
+                                <strong>
+                                    {((market.price / Number(priceAtPublication) - 1) * 100) >= 0 ? "+" : ""}
+                                    {((market.price / Number(priceAtPublication) - 1) * 100).toFixed(2)}%
+                                </strong>
+                                <small>From {formatPrice(Number(priceAtPublication))}
+                                    {priceCapturedAt ? ` (quote: ${String(priceCapturedAt).slice(0, 10)})` : ""}
+                                </small>
+                            </div>
+                        )}
                         {market.priceTarget != null && (
                             <>
                                 <div>

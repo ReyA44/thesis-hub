@@ -160,7 +160,7 @@ async function fetchYahooQuote(ticker) {
  * This prevents a temporary Yahoo outage from
  * breaking prices already fetched by ThesisHub.
  */
-async function getCachedQuote(ticker) {
+export async function getCachedQuote(ticker) {
     const now = Date.now();
     const cached = cache.get(ticker);
 

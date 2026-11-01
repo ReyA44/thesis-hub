@@ -604,6 +604,8 @@ export default function ThesisFeed({
                                 apiUrl={apiUrl}
                                 ticker={post.stocks[0].stock.ticker}
                                 priceTarget={post.priceTarget}
+                                priceAtPublication={post.priceAtPublication}
+                                priceCapturedAt={post.priceCapturedAt}
                             />
                         )}
 

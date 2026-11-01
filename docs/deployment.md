@@ -1,23 +1,14 @@
-# Deployment quick start (Milestone 12)
+# ThesisHub — Deployment Notes (Deferred)
 
-Deploy PostgreSQL and the Express server on a Node.js host; deploy `client` as a Vite static site.
+**Current submission: local-only.** Public hosting, domain configuration and live production verification are deliberately postponed. Local startup instructions are in [README.md](../README.md).
 
-## Backend environment
-- `DATABASE_URL` — production PostgreSQL connection string (set privately on your host)
-- `JWT_SECRET` — a long, random signing secret (never commit it)
-- `CLIENT_ORIGIN` — exact HTTPS frontend origin, without a trailing slash
-- `PORT` — provided by hosting service
+For a future public deployment, the minimum work is:
 
-Build/install: `cd server && npm ci && npx prisma migrate deploy`
-Start: `cd server && npm start`
-Health: `https://YOUR-API-HOST/api/health/db`
+1. Obtain a licensed/authorized market-data solution suitable for public redistribution. The current Yahoo Finance integration is unofficial.
+2. Provision private PostgreSQL storage, run `npx prisma migrate deploy`, and use backups.
+3. Host the Express API with `DATABASE_URL`, a strong `JWT_SECRET`, `CLIENT_ORIGIN` and `PORT`.
+4. Build the static React site with `VITE_API_URL` pointing to the HTTPS backend.
+5. Enable HTTPS, centralized persistent logs and shared-store rate limiting if scaling beyond one process.
+6. Re-run CI and an end-to-end browser acceptance test against the deployed environment.
 
-## Frontend environment
-- `VITE_API_URL` — exact public HTTPS backend origin (without trailing slash)
-
-Build: `cd client && npm ci && npm run build`
-Publish the `client/dist` directory as a static website.
-
-**Do not** place `DATABASE_URL` or `JWT_SECRET` in Vite variables.
-The Yahoo Finance integration is unofficial; check its display and redistribution terms before using public market quotes.
-The in-memory rate limiter and quote cache suit a one-instance course demo, not horizontal scaling.
+Do not set backend secrets as Vite environment variables. The backend's CORS setting is **not** a substitute for authentication and authorization. Public hosting is **not required** for the current local-first course demo.
