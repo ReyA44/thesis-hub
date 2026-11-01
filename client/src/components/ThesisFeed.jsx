@@ -250,6 +250,7 @@ export default function ThesisFeed({
     return (
         <section
             className="feed"
+            id="feed"
             aria-label="Public thesis feed"
         >
             <h2>Investment theses</h2>
@@ -265,7 +266,8 @@ export default function ThesisFeed({
                 onSubmit={handleSearch}
                 aria-label="Search and filter investment theses"
             >
-                <div className="feed-filter-grid">
+                {/* Keep stock search and sort visible; other filters stay one click away. */}
+                <div className="feed-filter-grid feed-filter-primary">
                     <label>
                         Stock / Company
                         <input
@@ -281,8 +283,36 @@ export default function ThesisFeed({
                             placeholder="MSFT, Microsoft..."
                         />
                     </label>
-
                     <label>
+                        Sort by
+                        <select
+                            value={filters.sort}
+                            onChange={(event) =>
+                                updateFilter(
+                                    "sort",
+                                    event.target.value
+                                )
+                            }
+                        >
+                            <option value="newest">
+                                Newest first
+                            </option>
+                            <option value="oldest">
+                                Oldest first
+                            </option>
+                            <option value="popular">
+                                Most popular
+                            </option>
+                            <option value="discussed">
+                                Most discussed
+                            </option>
+                        </select>
+                    </label>
+                </div>
+                <details className="feed-filter-more">
+                    <summary>More filters <span>Author, conviction, sentiment & date</span></summary>
+                    <div className="feed-filter-grid feed-filter-advanced">
+                        <label>
                         Author
                         <input
                             type="search"
@@ -298,7 +328,7 @@ export default function ThesisFeed({
                         />
                     </label>
 
-                    <label>
+                        <label>
                         Conviction
                         <select
                             value={filters.conviction}
@@ -318,7 +348,7 @@ export default function ThesisFeed({
                         </select>
                     </label>
 
-                    <label>
+                        <label>
                         Community sentiment
                         <select
                             value={filters.sentiment}
@@ -350,7 +380,7 @@ export default function ThesisFeed({
                         </select>
                     </label>
 
-                    <label>
+                        <label>
                         Published
                         <select
                             value={filters.age}
@@ -378,33 +408,8 @@ export default function ThesisFeed({
                             </option>
                         </select>
                     </label>
-
-                    <label>
-                        Sort by
-                        <select
-                            value={filters.sort}
-                            onChange={(event) =>
-                                updateFilter(
-                                    "sort",
-                                    event.target.value
-                                )
-                            }
-                        >
-                            <option value="newest">
-                                Newest first
-                            </option>
-                            <option value="oldest">
-                                Oldest first
-                            </option>
-                            <option value="popular">
-                                Most popular
-                            </option>
-                            <option value="discussed">
-                                Most discussed
-                            </option>
-                        </select>
-                    </label>
-                </div>
+                    </div>
+                </details>
 
                 <div className="feed-filter-actions">
                     <button
@@ -535,7 +540,7 @@ export default function ThesisFeed({
                             />
                         )}
 
-                        <p className="conviction-label">
+                        <p className="conviction-label" data-level={post.conviction}>
                             Conviction:{" "}
                             <strong>
                                 {post.conviction}
@@ -566,9 +571,10 @@ export default function ThesisFeed({
                         </ul>
 
                         {post.fullThesis && (
-                            <p className="post-description">
-                                {post.fullThesis}
-                            </p>
+                            <details className="post-description-disclosure">
+                                <summary>Read the full thesis</summary>
+                                <p className="post-description">{post.fullThesis}</p>
+                            </details>
                         )}
 
                         {post.priceTarget != null && (
@@ -615,11 +621,17 @@ export default function ThesisFeed({
                             token={session?.token}
                         />
 
-                        <ReplySection
-                            apiUrl={apiUrl}
-                            postId={post.id}
-                            session={session}
-                        />
+                        <details className="discussion-disclosure">
+                            <summary>
+                                Discussion
+                                <span>{post.replyCount ?? 0} replies</span>
+                            </summary>
+                            <ReplySection
+                                apiUrl={apiUrl}
+                                postId={post.id}
+                                session={session}
+                            />
+                        </details>
                     </article>
                 );
             })}

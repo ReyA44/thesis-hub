@@ -206,176 +206,205 @@ function App() {
 
   return (
     <main className="app">
+      {/* Plain React and CSS — no new UI framework or dependency. */}
       <header className="app-header">
-        <h1>ThesisHub</h1>
-        <p>Share ideas. Challenge assumptions.</p>
+        <div className="app-header-inner">
+          <div className="brand">
+            <span className="brand-mark" aria-hidden="true">TH</span>
+            <div>
+              <h1>ThesisHub</h1>
+              <p>Share ideas. Challenge assumptions.</p>
+            </div>
+          </div>
+          <nav className="header-nav" aria-label="Main navigation">
+            <a href="#feed">Explore theses</a>
+            {session && <a className="header-action" href="#publish">+ Publish</a>}
+          </nav>
+        </div>
       </header>
 
-      {/* Account panel for signed-in users. */}
-      {session ? (
-        <section className="signed-in-panel">
-          <div>
-            <strong>
-              Welcome, {session.user.username}!
-            </strong>
+      <div className="app-workspace">
+        <section className="app-primary" aria-label="Investment thesis workspace">
+          {/* A small composer entry point keeps the feed visible on first load. */}
+          {session && (
+            <details id="publish" className="composer-panel">
+              <summary>
+                <span className="composer-icon" aria-hidden="true">+</span>
+                <span><strong>Share an investment thesis</strong><small>What is your investment idea?</small></span>
+                <span className="composer-cta">New thesis</span>
+              </summary>
+              <ThesisForm
+                apiUrl={API_URL}
+                token={session.token}
+                onPublished={handlePostsChanged}
+              />
+            </details>
+          )}
 
-            <p className="account-email">
-              {session.user.email}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={handleLogout}
-          >
-            Log out
-          </button>
+          <ThesisFeed
+            apiUrl={API_URL}
+            refreshKey={refreshKey}
+            session={session}
+            onPostsChanged={handlePostsChanged}
+          />
         </section>
-      ) : (
-        <section className="auth-card">
-          <div className="auth-tabs">
+
+        <aside className="app-sidebar" aria-label="Account">
+        {/* Account panel for signed-in users. */}
+        {session ? (
+          <section className="signed-in-panel">
+            <div>
+              <strong>
+                Welcome, {session.user.username}!
+              </strong>
+  
+              <p className="account-email">
+                {session.user.email}
+              </p>
+            </div>
+  
             <button
               type="button"
-              className={
-                mode === "login" ? "active" : ""
-              }
-              aria-pressed={mode === "login"}
-              onClick={() => changeMode("login")}
+              className="secondary-button"
+              onClick={handleLogout}
             >
-              Log in
+              Log out
             </button>
-
-            <button
-              type="button"
-              className={
-                mode === "register" ? "active" : ""
-              }
-              aria-pressed={mode === "register"}
-              onClick={() => changeMode("register")}
-            >
-              Register
-            </button>
-          </div>
-
-          <h2>
-            {mode === "login"
-              ? "Welcome back"
-              : "Create your account"}
-          </h2>
-
-          <form onSubmit={handleSubmit}>
-            {mode === "register" && (
-              <label htmlFor="username">
-                Username
-
+          </section>
+        ) : (
+          <section className="auth-card">
+            <div className="auth-tabs">
+              <button
+                type="button"
+                className={
+                  mode === "login" ? "active" : ""
+                }
+                aria-pressed={mode === "login"}
+                onClick={() => changeMode("login")}
+              >
+                Log in
+              </button>
+  
+              <button
+                type="button"
+                className={
+                  mode === "register" ? "active" : ""
+                }
+                aria-pressed={mode === "register"}
+                onClick={() => changeMode("register")}
+              >
+                Register
+              </button>
+            </div>
+  
+            <h2>
+              {mode === "login"
+                ? "Welcome back"
+                : "Create your account"}
+            </h2>
+  
+            <form onSubmit={handleSubmit}>
+              {mode === "register" && (
+                <label htmlFor="username">
+                  Username
+  
+                  <input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(event) =>
+                      setUsername(event.target.value)
+                    }
+                    autoComplete="username"
+                    minLength={3}
+                    maxLength={30}
+                    pattern="[A-Za-z0-9_]+"
+                    required
+                  />
+                </label>
+              )}
+  
+              <label htmlFor="email">
+                Email
+  
                 <input
-                  id="username"
-                  type="text"
-                  value={username}
+                  id="email"
+                  type="email"
+                  value={email}
                   onChange={(event) =>
-                    setUsername(event.target.value)
+                    setEmail(event.target.value)
                   }
-                  autoComplete="username"
-                  minLength={3}
-                  maxLength={30}
-                  pattern="[A-Za-z0-9_]+"
+                  autoComplete="email"
                   required
                 />
               </label>
-            )}
-
-            <label htmlFor="email">
-              Email
-
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) =>
-                  setEmail(event.target.value)
-                }
-                autoComplete="email"
-                required
-              />
-            </label>
-
-            <label htmlFor="password">
-              Password
-
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(event) =>
-                  setPassword(event.target.value)
-                }
-                autoComplete={
-                  mode === "register"
-                    ? "new-password"
-                    : "current-password"
-                }
-                minLength={
-                  mode === "register"
-                    ? 12
-                    : undefined
-                }
-                required
-              />
-            </label>
-
-            {error && (
-              <p
-                className="message error"
-                role="alert"
+  
+              <label htmlFor="password">
+                Password
+  
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(event) =>
+                    setPassword(event.target.value)
+                  }
+                  autoComplete={
+                    mode === "register"
+                      ? "new-password"
+                      : "current-password"
+                  }
+                  minLength={
+                    mode === "register"
+                      ? 12
+                      : undefined
+                  }
+                  required
+                />
+              </label>
+  
+              {error && (
+                <p
+                  className="message error"
+                  role="alert"
+                >
+                  {error}
+                </p>
+              )}
+  
+              {notice && (
+                <p
+                  className="message success"
+                  role="status"
+                >
+                  {notice}
+                </p>
+              )}
+  
+              <button
+                type="submit"
+                className="submit-button"
+                disabled={loading}
               >
-                {error}
-              </p>
-            )}
-
-            {notice && (
-              <p
-                className="message success"
-                role="status"
-              >
-                {notice}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              className="submit-button"
-              disabled={loading}
-            >
-              {loading
-                ? "Please wait..."
-                : mode === "login"
-                  ? "Log in"
-                  : "Create account"}
-            </button>
-          </form>
-        </section>
-      )}
-
-      {/* Publishing is limited to signed-in users. */}
-      {session && (
-        <ThesisForm
-          apiUrl={API_URL}
-          token={session.token}
-          onPublished={handlePostsChanged}
-        />
-      )}
-
-      {/* Everyone can view the feed. */}
-      <ThesisFeed
-        apiUrl={API_URL}
-        refreshKey={refreshKey}
-        session={session}
-        onPostsChanged={handlePostsChanged}
-      />
+                {loading
+                  ? "Please wait..."
+                  : mode === "login"
+                    ? "Log in"
+                    : "Create account"}
+              </button>
+            </form>
+          </section>
+        )}
+          <div className="sidebar-help">
+            <strong>Ideas worth discussing</strong>
+            <p>Present the thesis, the risks and the conditions that would change your mind.</p>
+          </div>
+        </aside>
+      </div>
 
       <footer className="app-footer">
-        {apiStatus}
+        <span className="status-indicator" aria-hidden="true"></span>
+        {apiStatus} · Local project demo
       </footer>
     </main>
   );
