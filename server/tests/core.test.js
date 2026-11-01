@@ -37,7 +37,7 @@ test("rate limiter returns 429 after threshold", () => {
 
 test("shared thesis validation normalizes titles and stock tickers", () => {
     assert.equal(parseThesisTitle("  My thesis  ").value, "My thesis");
-    assert.match(parseThesisTitle("Two\\nlines").error, /single line/);
+    assert.match(parseThesisTitle("Two" + String.fromCharCode(10) + "lines").error, /single line/);
     const stocks = parseThesisStocks([
         { ticker: " msft ", companyName: " Microsoft " },
         { ticker: "brk.b", companyName: "Berkshire Hathaway" },
