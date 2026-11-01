@@ -14,7 +14,10 @@ import {
     discoverPosts,
     DiscoveryValidationError,
 } from "../services/discoverPosts.js";
-
+import {
+    THESIS_DETAIL_FIELDS,
+    parseThesisDetails,
+} from "../utils/thesisDetails.js";
 export const postsRouter = Router();
 
 /**
@@ -183,7 +186,13 @@ postsRouter.post("/", requireAuth, async (req, res) => {
             error: "Price target must be a positive decimal string.",
         });
     }
+    const details = parseThesisDetails(req.body ?? {});
 
+    if (details.error) {
+        return res.status(400).json({
+            error: details.error,
+        });
+    }
     try {
         /**
          * Create the post and its stock relationships.
@@ -200,6 +209,7 @@ postsRouter.post("/", requireAuth, async (req, res) => {
                 conviction,
                 fullThesis: fullThesis?.trim() || null,
                 priceTarget: normalizedTarget,
+                ...details.data,
 
                 // The author comes from the verified JWT,
                 // never from a user-controlled request field.
@@ -342,6 +352,7 @@ postsRouter.patch("/:id", requireAuth, async (req, res) => {
         "fullThesis",
         "priceTarget",
         "stocks",
+        ...THESIS_DETAIL_FIELDS,
     ];
 
     // A PATCH request must contain at least one valid field.
@@ -362,6 +373,15 @@ postsRouter.patch("/:id", requireAuth, async (req, res) => {
     // Prisma update data is constructed only from validated fields.
     const updateData = {};
 
+    const details = parseThesisDetails(changes);
+
+    if (details.error) {
+        return res.status(400).json({
+            error: details.error,
+        });
+    }
+
+    Object.assign(updateData, details.data);
     /**
      * Validate an updated title when one is provided.
      */

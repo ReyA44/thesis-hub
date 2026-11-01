@@ -19,6 +19,7 @@ import MarketPanel from "./MarketPanel.jsx";
 import ReactionBar from "./ReactionBar.jsx";
 import ReplySection from "./ReplySection.jsx";
 import ThesisForm from "./ThesisForm.jsx";
+import StructuredThesisView from "./StructuredThesisView.jsx";
 
 const DEFAULT_FILTERS = {
     q: "",
@@ -578,6 +579,8 @@ export default function ThesisFeed({
                                 </strong>
                             </p>
                         )}
+
+                        <StructuredThesisView post={post} />
 
                         {/* Engagement information from the feed API. */}
                         {typeof post.popularityScore === "number" && (

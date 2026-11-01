@@ -15,6 +15,10 @@
  */
 
 import { useRef, useState } from "react";
+import StructuredThesisFields, {
+    EMPTY_THESIS_DETAILS,
+    thesisDetailsFromPost,
+} from "./StructuredThesisFields.jsx";
 
 /**
  * Build stock rows from an existing thesis.
@@ -57,6 +61,10 @@ export default function ThesisForm({
 
     const [priceTarget, setPriceTarget] = useState(
         editingPost?.priceTarget?.toString() ?? ""
+    );
+
+    const [details, setDetails] = useState(
+        () => thesisDetailsFromPost(editingPost)
     );
 
     /**
@@ -171,6 +179,8 @@ export default function ThesisForm({
             priceTarget: priceTarget.trim() || (
                 isEditing ? null : undefined
             ),
+
+            ...details,
         };
 
         const endpoint = isEditing
@@ -230,6 +240,7 @@ export default function ThesisForm({
             setConviction("MEDIUM");
             setFullThesis("");
             setPriceTarget("");
+            setDetails({ ...EMPTY_THESIS_DETAILS });
 
             setStocks([
                 {
@@ -406,6 +417,11 @@ export default function ThesisForm({
                 {/* Optional: primary ticker price target */}
                 <label htmlFor="price-target">
                     Price target — primary ticker (optional)
+                    <StructuredThesisFields
+                        value={details}
+                        onChange={setDetails}
+                        disabled={loading}
+                    />
 
                     <input
                         id="price-target"

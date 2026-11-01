@@ -60,6 +60,7 @@ model ThesisPost {
   fullThesis     String?
   priceTarget    Decimal? @db.Decimal(16, 4)
   timeHorizon    String?
+  catalysts      String?
   targetTimeframe DateTime?
   invalidation   String?
   strategy       String?
