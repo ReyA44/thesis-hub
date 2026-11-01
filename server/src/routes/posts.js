@@ -10,6 +10,10 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/requireAuth.js";
+import {
+    discoverPosts,
+    DiscoveryValidationError,
+} from "../services/discoverPosts.js";
 
 export const postsRouter = Router();
 
@@ -240,33 +244,43 @@ postsRouter.post("/", requireAuth, async (req, res) => {
     }
 });
 
+
 /**
  * GET /api/posts
  *
- * Public endpoint: authentication is not required.
- * Returns the 25 most recent investment theses.
+ * Public investment thesis discovery endpoint.
+ *
+ * Optional query parameters:
+ * - q: ticker or company name
+ * - author: username
+ * - conviction: LOW, MEDIUM, HIGH
+ * - sentiment: reaction type
+ * - age: all, 7d, 30d, 90d, 365d
+ * - sort: newest, oldest, popular, discussed
+ *
+ * Existing POST, GET /:id, PATCH and DELETE
+ * endpoints remain unchanged.
  */
 postsRouter.get("/", async (req, res) => {
     try {
-        const posts = await prisma.thesisPost.findMany({
-            orderBy: [
-                { createdAt: "desc" },
-                { id: "desc" },
-            ],
-            take: 25,
-            include: postRelations,
-        });
-
-        return res.json({ posts });
+        const result = await discoverPosts(req.query);
+        return res.json(result);
 
     } catch (error) {
-        console.error("Failed to retrieve posts:", error);
+        if (error instanceof DiscoveryValidationError) {
+            return res.status(400).json({
+                error: error.message,
+            });
+        }
+
+        console.error("Failed to discover posts:", error);
 
         return res.status(500).json({
             error: "Could not retrieve posts.",
         });
     }
 });
+
 
 /**
  * GET /api/posts/:id

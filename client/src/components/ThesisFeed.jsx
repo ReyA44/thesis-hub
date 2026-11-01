@@ -2,22 +2,49 @@
 /**
  * ThesisHub — Public Investment Thesis Feed
  *
- * Responsibilities:
- * 1. Retrieve and display public investment theses.
- * 2. Show Edit and Delete actions to post authors only.
- * 3. Reuse ThesisForm to edit existing posts.
- * 4. Confirm and execute post deletion.
- * 5. Refresh the feed after changes.
+ * Features:
+ * - Public thesis discovery and filtering.
+ * - Four feed sorting options.
+ * - Post editing and deletion for authors.
+ * - Stock market information.
+ * - Community reactions and replies.
  *
- * Important:
- * Hiding controls is only a UI convenience.
- * The Express backend must enforce authorization.
+ * Search and filtering are performed by the backend.
+ * Authorization is enforced by Express.
  */
-import ReplySection from "./ReplySection.jsx";
-import ReactionBar from "./ReactionBar.jsx";
-import MarketPanel from "./MarketPanel.jsx";
+
 import { useEffect, useState } from "react";
+
+import MarketPanel from "./MarketPanel.jsx";
+import ReactionBar from "./ReactionBar.jsx";
+import ReplySection from "./ReplySection.jsx";
 import ThesisForm from "./ThesisForm.jsx";
+
+const DEFAULT_FILTERS = {
+    q: "",
+    author: "",
+    conviction: "",
+    sentiment: "",
+    age: "all",
+    sort: "newest",
+};
+
+/**
+ * Convert selected filters into API query parameters.
+ */
+function buildFeedUrl(apiUrl, filters) {
+    const params = new URLSearchParams();
+
+    for (const [key, value] of Object.entries(filters)) {
+        if (value && value !== "all") {
+            params.set(key, value);
+        }
+    }
+
+    const query = params.toString();
+
+    return `${apiUrl}/api/posts${query ? `?${query}` : ""}`;
+}
 
 export default function ThesisFeed({
     apiUrl,
@@ -25,23 +52,26 @@ export default function ThesisFeed({
     session,
     onPostsChanged,
 }) {
-    // Public feed data.
     const [posts, setPosts] = useState([]);
-
-    // Request states.
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    // Post-management states.
+    // Form values may change without immediately fetching.
+    const [filters, setFilters] = useState(DEFAULT_FILTERS);
+
+    // Only submitted filters trigger an API request.
+    const [appliedFilters, setAppliedFilters] =
+        useState(DEFAULT_FILTERS);
+
     const [editingPostId, setEditingPostId] = useState(null);
     const [deletingPostId, setDeletingPostId] = useState(null);
     const [actionError, setActionError] = useState("");
 
     /**
-     * Reload posts whenever refreshKey changes.
+     * Load matching theses.
      *
-     * AbortController prevents outdated requests
-     * from modifying component state.
+     * AbortController prevents an older request from
+     * overwriting newer search results.
      */
     useEffect(() => {
         const controller = new AbortController();
@@ -51,13 +81,22 @@ export default function ThesisFeed({
             setError("");
 
             try {
-                const response = await fetch(
-                    `${apiUrl}/api/posts`,
-                    { signal: controller.signal }
+                const url = buildFeedUrl(
+                    apiUrl,
+                    appliedFilters
                 );
 
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                });
+
                 if (!response.ok) {
+                    const data = await response
+                        .json()
+                        .catch(() => ({}));
+
                     throw new Error(
+                        data.error ||
                         "Could not retrieve investment theses."
                     );
                 }
@@ -68,11 +107,16 @@ export default function ThesisFeed({
                     throw new Error("Unexpected feed response.");
                 }
 
-                setPosts(data.posts);
+                if (!controller.signal.aborted) {
+                    setPosts(data.posts);
+                }
 
             } catch (caughtError) {
                 if (!controller.signal.aborted) {
-                    setError(caughtError.message);
+                    setError(
+                        caughtError.message ||
+                        "Unable to contact the server."
+                    );
                 }
 
             } finally {
@@ -86,27 +130,45 @@ export default function ThesisFeed({
 
         return () => controller.abort();
 
-    }, [apiUrl, refreshKey]);
+    }, [apiUrl, refreshKey, appliedFilters]);
 
     /**
-     * Open the editing form for a specific post.
+     * Update one discovery control.
      */
+    function updateFilter(name, value) {
+        setFilters((current) => ({
+            ...current,
+            [name]: value,
+        }));
+    }
+
+    /**
+     * Apply all selected filters together.
+     */
+    function handleSearch(event) {
+        event.preventDefault();
+
+        setAppliedFilters({ ...filters });
+    }
+
+    /**
+     * Restore the initial feed.
+     */
+    function resetFilters() {
+        setFilters({ ...DEFAULT_FILTERS });
+        setAppliedFilters({ ...DEFAULT_FILTERS });
+    }
+
     function startEditing(postId) {
         setActionError("");
         setEditingPostId(postId);
     }
 
-    /**
-     * Close the editing form without submitting.
-     */
     function cancelEditing() {
         setEditingPostId(null);
         setActionError("");
     }
 
-    /**
-     * Called after ThesisForm successfully saves an edit.
-     */
     function handleEdited() {
         setEditingPostId(null);
         setActionError("");
@@ -114,11 +176,10 @@ export default function ThesisFeed({
     }
 
     /**
-     * Delete a post after the author confirms.
+     * Delete only a post belonging to the signed-in user.
      *
-     * The DELETE endpoint returns HTTP 204, which has
-     * no JSON body. Therefore, we don't call
-     * response.json() on successful deletion.
+     * This frontend check is for user experience.
+     * The backend also verifies ownership.
      */
     async function handleDelete(post) {
         if (!session?.token) {
@@ -126,14 +187,11 @@ export default function ThesisFeed({
             return;
         }
 
-        // Confirm the destructive operation.
         const confirmed = window.confirm(
             `Permanently delete this investment thesis?\n\n"${post.title}"`
         );
 
-        if (!confirmed) {
-            return;
-        }
+        if (!confirmed) return;
 
         setDeletingPostId(post.id);
         setActionError("");
@@ -150,7 +208,6 @@ export default function ThesisFeed({
             );
 
             if (!response.ok) {
-                // Error responses contain JSON.
                 const data = await response
                     .json()
                     .catch(() => ({}));
@@ -163,7 +220,7 @@ export default function ThesisFeed({
 
                 if (response.status === 403) {
                     throw new Error(
-                        "You are not authorized to delete this thesis."
+                        "You cannot delete another user's thesis."
                     );
                 }
 
@@ -172,17 +229,16 @@ export default function ThesisFeed({
                 );
             }
 
-            // Close any editor associated with this post.
             if (editingPostId === post.id) {
                 setEditingPostId(null);
             }
 
-            // Reload the feed to remove the deleted post.
             onPostsChanged();
 
         } catch (caughtError) {
             setActionError(
-                caughtError.message || "Unable to contact the server."
+                caughtError.message ||
+                "Unable to contact the server."
             );
 
         } finally {
@@ -191,12 +247,194 @@ export default function ThesisFeed({
     }
 
     return (
-        <section className="feed" aria-label="Public thesis feed">
+        <section
+            className="feed"
+            aria-label="Public thesis feed"
+        >
             <h2>Investment theses</h2>
 
             <p className="feed-subtitle">
-                Ideas shared by the ThesisHub community
+                Explore investment ideas shared by the
+                ThesisHub community.
             </p>
+
+            {/* Public search and discovery controls. */}
+            <form
+                className="feed-filters"
+                onSubmit={handleSearch}
+                aria-label="Search and filter investment theses"
+            >
+                <div className="feed-filter-grid">
+                    <label>
+                        Stock / Company
+                        <input
+                            type="search"
+                            value={filters.q}
+                            onChange={(event) =>
+                                updateFilter(
+                                    "q",
+                                    event.target.value
+                                )
+                            }
+                            maxLength={100}
+                            placeholder="MSFT, Microsoft..."
+                        />
+                    </label>
+
+                    <label>
+                        Author
+                        <input
+                            type="search"
+                            value={filters.author}
+                            onChange={(event) =>
+                                updateFilter(
+                                    "author",
+                                    event.target.value
+                                )
+                            }
+                            maxLength={100}
+                            placeholder="Username"
+                        />
+                    </label>
+
+                    <label>
+                        Conviction
+                        <select
+                            value={filters.conviction}
+                            onChange={(event) =>
+                                updateFilter(
+                                    "conviction",
+                                    event.target.value
+                                )
+                            }
+                        >
+                            <option value="">
+                                All convictions
+                            </option>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Community sentiment
+                        <select
+                            value={filters.sentiment}
+                            onChange={(event) =>
+                                updateFilter(
+                                    "sentiment",
+                                    event.target.value
+                                )
+                            }
+                        >
+                            <option value="">
+                                All sentiments
+                            </option>
+                            <option value="ROCKET">
+                                🚀 TO THE MOON
+                            </option>
+                            <option value="BULLISH">
+                                🐂 Bullish
+                            </option>
+                            <option value="NEUTRAL">
+                                ⚖️ Neutral
+                            </option>
+                            <option value="BEARISH">
+                                🐻 Bearish
+                            </option>
+                            <option value="BAG_HOLDER">
+                                👜 Bag Holder
+                            </option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Published
+                        <select
+                            value={filters.age}
+                            onChange={(event) =>
+                                updateFilter(
+                                    "age",
+                                    event.target.value
+                                )
+                            }
+                        >
+                            <option value="all">
+                                Any time
+                            </option>
+                            <option value="7d">
+                                Last 7 days
+                            </option>
+                            <option value="30d">
+                                Last 30 days
+                            </option>
+                            <option value="90d">
+                                Last 90 days
+                            </option>
+                            <option value="365d">
+                                Last year
+                            </option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Sort by
+                        <select
+                            value={filters.sort}
+                            onChange={(event) =>
+                                updateFilter(
+                                    "sort",
+                                    event.target.value
+                                )
+                            }
+                        >
+                            <option value="newest">
+                                Newest first
+                            </option>
+                            <option value="oldest">
+                                Oldest first
+                            </option>
+                            <option value="popular">
+                                Most popular
+                            </option>
+                            <option value="discussed">
+                                Most discussed
+                            </option>
+                        </select>
+                    </label>
+                </div>
+
+                <div className="feed-filter-actions">
+                    <button
+                        type="submit"
+                        className="submit-button"
+                    >
+                        Apply filters
+                    </button>
+
+                    <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={resetFilters}
+                    >
+                        Reset
+                    </button>
+                </div>
+            </form>
+
+            {!loading && !error && (
+                <p
+                    className="feed-results-count"
+                    role="status"
+                >
+                    Showing {posts.length}{" "}
+                    {posts.length === 1 ? "thesis" : "theses"}
+                    {posts.length === 25
+                        ? " (maximum 25 per search)"
+                        : ""}
+                </p>
+            )}
 
             {loading && (
                 <p role="status">
@@ -218,18 +456,13 @@ export default function ThesisFeed({
 
             {!loading && !error && posts.length === 0 && (
                 <p className="empty-feed">
-                    No theses have been published yet.
-                    Be the first to share an idea!
+                    No investment theses match your filters.
+                    Try different criteria or select Reset.
                 </p>
             )}
 
             {!loading && !error && posts.map((post) => {
-                /**
-                 * Only the author sees editing controls.
-                 *
-                 * Ownership is checked again in the backend
-                 * before any data is modified.
-                 */
+                // Only the author sees management controls.
                 const isAuthor =
                     session?.user?.id === post.author.id;
 
@@ -257,7 +490,7 @@ export default function ThesisFeed({
                             {post.title}
                         </h3>
 
-                        {/* Post-management controls. */}
+                        {/* Author-only management controls. */}
                         {isAuthor && (
                             <div className="post-actions">
                                 <button
@@ -290,7 +523,6 @@ export default function ThesisFeed({
                             </div>
                         )}
 
-                        {/* The existing form doubles as an editor. */}
                         {isEditing && isAuthor && (
                             <ThesisForm
                                 key={post.id}
@@ -309,7 +541,7 @@ export default function ThesisFeed({
                             </strong>
                         </p>
 
-                        {/* Stock relationships arrive in order. */}
+                        {/* Associated stocks in priority order. */}
                         <ul className="post-stocks">
                             {post.stocks.map(
                                 (association, index) => (
@@ -332,7 +564,6 @@ export default function ThesisFeed({
                             )}
                         </ul>
 
-                        {/* Optional post details. */}
                         {post.fullThesis && (
                             <p className="post-description">
                                 {post.fullThesis}
@@ -347,7 +578,23 @@ export default function ThesisFeed({
                                 </strong>
                             </p>
                         )}
-                        {/* Live-on-request market information for primary ticker. */}
+
+                        {/* Engagement information from the feed API. */}
+                        {typeof post.popularityScore === "number" && (
+                            <p className="feed-engagement">
+                                <span>
+                                    {post.reactionCount} reactions
+                                </span>
+                                <span>
+                                    {post.replyCount} replies
+                                </span>
+                                <strong>
+                                    Score: {post.popularityScore}
+                                </strong>
+                            </p>
+                        )}
+
+                        {/* Primary ticker market information. */}
                         {post.stocks.length > 0 && (
                             <MarketPanel
                                 key={post.stocks[0].stock.ticker}
@@ -356,11 +603,13 @@ export default function ThesisFeed({
                                 priceTarget={post.priceTarget}
                             />
                         )}
+
                         <ReactionBar
                             apiUrl={apiUrl}
                             postId={post.id}
                             token={session?.token}
                         />
+
                         <ReplySection
                             apiUrl={apiUrl}
                             postId={post.id}

@@ -625,3 +625,70 @@ button:focus-visible {
 .reply-form button {
   width: fit-content;
 }
+
+
+/* ThesisHub — Feed search and discovery */
+
+.feed-filters {
+  margin: 1.25rem 0;
+  padding: 1.25rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+}
+
+.feed-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,
+      minmax(min(100%, 190px), 1fr));
+  gap: 1rem;
+}
+
+.feed-filter-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.feed-filter-grid input,
+.feed-filter-grid select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid #94a3b8;
+  border-radius: 0.5rem;
+  font: inherit;
+  background: #fff;
+  color: #0f172a;
+}
+
+.feed-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.feed-filter-actions button {
+  width: auto;
+}
+
+.feed-results-count {
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.feed-engagement {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.feed-engagement strong {
+  color: #0f172a;
+}
