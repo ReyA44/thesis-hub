@@ -19,6 +19,12 @@ import {
     THESIS_DETAIL_FIELDS,
     parseThesisDetails,
 } from "../utils/thesisDetails.js";
+import {
+    parseThesisTitle,
+    parseThesisStocks,
+    parseThesisPriceTarget,
+} from "../utils/thesisInput.js";
+
 export function createPostsRouter({ publicationQuoteLookup = getCachedQuote } = {}) {
 const postsRouter = Router();
 
@@ -76,118 +82,27 @@ postsRouter.post("/", requireAuth, async (req, res) => {
         priceTarget,
     } = req.body ?? {};
 
-    // Validate title: must be nonempty and reasonably short.
-    const cleanTitle =
-        typeof title === "string" ? title.trim() : "";
+    const parsedTitle = parseThesisTitle(title);
+    if (parsedTitle.error) return res.status(400).json({ error: parsedTitle.error });
+    const cleanTitle = parsedTitle.value;
 
-    if (
-        !cleanTitle ||
-        cleanTitle.length > 180 ||
-        /[\r\n]/.test(cleanTitle)
-    ) {
-        return res.status(400).json({
-            error: "Title must be a single line of 1-180 characters.",
-        });
-    }
-
-    // Only predefined conviction values are accepted.
     if (!["LOW", "MEDIUM", "HIGH"].includes(conviction)) {
-        return res.status(400).json({
-            error: "Conviction must be LOW, MEDIUM, or HIGH.",
-        });
+        return res.status(400).json({ error: "Conviction must be LOW, MEDIUM, or HIGH." });
     }
 
-    // A thesis must reference between 1 and 10 stocks.
-    if (
-        !Array.isArray(stocks) ||
-        stocks.length < 1 ||
-        stocks.length > 10
-    ) {
-        return res.status(400).json({
-            error: "A thesis must include 1-10 stocks.",
-        });
+    const parsedStocks = parseThesisStocks(stocks);
+    if (parsedStocks.error) return res.status(400).json({ error: parsedStocks.error });
+    const normalizedStocks = parsedStocks.value;
+
+    if (fullThesis != null &&
+        (typeof fullThesis !== "string" || fullThesis.length > 10000)) {
+        return res.status(400).json({ error: "Full thesis must contain at most 10,000 characters." });
     }
 
-    /**
-     * Normalize and validate each stock.
-     *
-     * The array order matters:
-     * index 0 is the primary stock associated with
-     * the structured price target.
-     */
-    const normalizedStocks = [];
+    const parsedTarget = parseThesisPriceTarget(priceTarget);
+    if (parsedTarget.error) return res.status(400).json({ error: parsedTarget.error });
+    const normalizedTarget = parsedTarget.value;
 
-    for (const stock of stocks) {
-        const ticker =
-            typeof stock?.ticker === "string"
-                ? stock.ticker.trim().toUpperCase()
-                : "";
-
-        const companyName =
-            typeof stock?.companyName === "string"
-                ? stock.companyName.trim()
-                : "";
-
-        // Accept common ticker formats such as BRK.B.
-        if (!/^[A-Z0-9]+(?:[.-][A-Z0-9]+)*$/.test(ticker) ||
-            ticker.length > 15 ||
-            !companyName ||
-            companyName.length > 120) {
-            return res.status(400).json({
-                error: "Each stock needs a valid ticker and company name.",
-            });
-        }
-
-        normalizedStocks.push({ ticker, companyName });
-    }
-
-    // Prevent adding the same stock more than once.
-    const tickers = normalizedStocks.map(
-        (stock) => stock.ticker
-    );
-
-    if (new Set(tickers).size !== tickers.length) {
-        return res.status(400).json({
-            error: "Duplicate tickers are not allowed.",
-        });
-    }
-
-    // The detailed thesis is optional.
-    if (
-        fullThesis != null &&
-        (typeof fullThesis !== "string" ||
-            fullThesis.length > 10000)
-    ) {
-        return res.status(400).json({
-            error: "Full thesis must contain at most 10,000 characters.",
-        });
-    }
-
-    /**
-     * Price targets are accepted as decimal strings.
-     * This avoids floating-point rounding during input.
-     *
-     * PostgreSQL uses DECIMAL(16,4) for this field.
-     */
-    const normalizedTarget =
-        priceTarget == null || priceTarget === ""
-            ? null
-            : priceTarget;
-
-    if (
-        normalizedTarget !== null &&
-        (
-            typeof normalizedTarget !== "string" ||
-            !/^(?:0|[1-9]\d{0,11})(?:\.\d{1,4})?$/.test(
-                normalizedTarget
-            ) ||
-            Number(normalizedTarget) <= 0
-        )
-    ) {
-        return res.status(400).json({
-            error: "Price target must be a positive decimal string.",
-        });
-    }
     const details = parseThesisDetails(req.body ?? {});
 
     if (details.error) {
@@ -406,26 +321,10 @@ postsRouter.patch("/:id", requireAuth, async (req, res) => {
     }
 
     Object.assign(updateData, details.data);
-    /**
-     * Validate an updated title when one is provided.
-     */
     if ("title" in changes) {
-        const title =
-            typeof changes.title === "string"
-                ? changes.title.trim()
-                : "";
-
-        if (
-            !title ||
-            title.length > 180 ||
-            /[\r\n]/.test(title)
-        ) {
-            return res.status(400).json({
-                error: "Title must be a single line of 1-180 characters.",
-            });
-        }
-
-        updateData.title = title;
+        const parsedTitle = parseThesisTitle(changes.title);
+        if (parsedTitle.error) return res.status(400).json({ error: parsedTitle.error });
+        updateData.title = parsedTitle.value;
     }
 
     /**
@@ -467,119 +366,27 @@ postsRouter.patch("/:id", requireAuth, async (req, res) => {
             changes.fullThesis?.trim() || null;
     }
 
-    /**
-     * Validate the primary stock's price target.
-     *
-     * Decimal values are represented as strings to
-     * avoid JavaScript floating-point precision problems.
-     */
     if ("priceTarget" in changes) {
-        const target =
-            changes.priceTarget === "" ||
-                changes.priceTarget === null
-                ? null
-                : changes.priceTarget;
-
-        if (
-            target !== null &&
-            (
-                typeof target !== "string" ||
-                !/^(?:0|[1-9]\d{0,11})(?:\.\d{1,4})?$/.test(target) ||
-                Number(target) <= 0
-            )
-        ) {
-            return res.status(400).json({
-                error: "Price target must be a positive decimal string.",
-            });
-        }
-
-        updateData.priceTarget = target;
+        const parsedTarget = parseThesisPriceTarget(changes.priceTarget);
+        if (parsedTarget.error) return res.status(400).json({ error: parsedTarget.error });
+        updateData.priceTarget = parsedTarget.value;
     }
 
-    /**
-     * Validate and replace the associated stocks
-     * only when the request includes a stocks array.
-     */
-    // Record the normalized new primary ticker for the publication-price invariant.
+    // The first stock is primary for the price target and publication snapshot.
     let nextPrimaryTicker = null;
     if ("stocks" in changes) {
-        const stocks = changes.stocks;
+        const parsedStocks = parseThesisStocks(changes.stocks);
+        if (parsedStocks.error) return res.status(400).json({ error: parsedStocks.error });
 
-        if (
-            !Array.isArray(stocks) ||
-            stocks.length < 1 ||
-            stocks.length > 10
-        ) {
-            return res.status(400).json({
-                error: "A thesis must contain 1-10 stocks.",
-            });
-        }
-
-        const normalizedStocks = [];
-
-        for (const stock of stocks) {
-            const ticker =
-                typeof stock?.ticker === "string"
-                    ? stock.ticker.trim().toUpperCase()
-                    : "";
-
-            const companyName =
-                typeof stock?.companyName === "string"
-                    ? stock.companyName.trim()
-                    : "";
-
-            if (
-                !/^[A-Z0-9]+(?:[.-][A-Z0-9]+)*$/.test(ticker) ||
-                ticker.length > 15 ||
-                !companyName ||
-                companyName.length > 120
-            ) {
-                return res.status(400).json({
-                    error: "Each stock needs a valid ticker and company name.",
-                });
-            }
-
-            normalizedStocks.push({
-                ticker,
-                companyName,
-            });
-        }
-
-        // Database uniqueness constraints prohibit duplicates.
-        const tickers = normalizedStocks.map(
-            (stock) => stock.ticker
-        );
-
-        if (new Set(tickers).size !== tickers.length) {
-            return res.status(400).json({
-                error: "Duplicate tickers are not allowed.",
-            });
-        }
-
-        nextPrimaryTicker = normalizedStocks[0].ticker;
-
-        /**
-         * Replace the existing PostStock relationships.
-         *
-         * deleteMany removes this post's ticker associations,
-         * NOT the shared Stock records.
-         *
-         * create rebuilds the associations in the new order.
-         *
-         * Both operations are part of Prisma's nested write.
-         */
+        nextPrimaryTicker = parsedStocks.value[0].ticker;
         updateData.stocks = {
             deleteMany: {},
-            create: normalizedStocks.map((stock, index) => ({
+            create: parsedStocks.value.map((stock, index) => ({
                 position: index,
-
                 stock: {
                     connectOrCreate: {
                         where: { ticker: stock.ticker },
-                        create: {
-                            ticker: stock.ticker,
-                            companyName: stock.companyName,
-                        },
+                        create: { ticker: stock.ticker, companyName: stock.companyName },
                     },
                 },
             })),
