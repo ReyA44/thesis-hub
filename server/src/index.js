@@ -28,6 +28,8 @@ import { authRouter } from "./routes/auth.js";
 
 import { postsRouter } from "./routes/posts.js";
 
+import { marketRouter } from "./routes/market.js";
+
 // Create an Express application instance.
 // 'app' is the main object used to configure our server.
 const app = express();
@@ -130,6 +132,8 @@ app.use("/api/auth", authRouter);
 
 // Public reading and authenticated publishing endpoints.
 app.use("/api/posts", postsRouter);
+
+app.use("/api/market", marketRouter);
 
 
 
