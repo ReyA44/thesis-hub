@@ -29,7 +29,7 @@ The app is intentionally a small **three-tier monolith**: React UI, one Express 
 | `server/src/middleware/` | JWT verification, rate limiting, request IDs and access logging |
 | `server/src/routes/` | Auth, posts, market, reactions and replies HTTP logic |
 | `server/src/services/discoverPosts.js` | Filtering, sort/engagement calculations |
-| `server/src/utils/thesisDetails.js` | Shared POST/PATCH optional-field validation |
+| `server/src/utils/thesisDetails.js`, `thesisInput.js` | Shared POST/PATCH structured and core-field validation |
 | `server/prisma/schema.prisma` | Database entities, types, relationships and constraints |
 | `server/tests/` | Node built-in unit + HTTP integration tests |
 

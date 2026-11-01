@@ -1,6 +1,6 @@
 # ThesisHub — Final MVP Requirements and Scope
 
-**Status:** Implemented local-first course MVP (pending final user browser acceptance).
+**Status:** Implemented local-first course MVP. CI checks are automated; a complete browser acceptance pass has not been recorded in this repository.
 
 ## Product goal
 
@@ -25,7 +25,7 @@ Enable people to publish clear, structured stock-investment ideas and discuss th
 | Automated tests | Implemented | Node unit tests + isolated HTTP/PostgreSQL integration test in CI |
 | Exception handling / logging | Implemented | Request IDs, structured HTTP logs, JSON error handling |
 | Meaningful names, modular structure | Implemented, reviewable | Route/service/component modules and comments |
-| Local browser verification | Pending final user walkthrough | `docs/testing.md` |
+| Local browser verification | Manual checklist available; not recorded as completed | `docs/testing.md` |
 
 ## Explicitly deferred from original brainstorm
 

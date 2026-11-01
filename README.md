@@ -1,71 +1,123 @@
 # ThesisHub
 
-**A local-first full-stack course project for publishing and discussing structured stock-investment theses.**
+**Share an investment thesis. Explain your conviction. Challenge the assumptions.**
 
-ThesisHub lets registered users publish an investment idea with a conviction rating, one or more tickers and optional detailed reasoning. Anyone can read the common feed, view market context, browse reactions and read replies. Editing, deleting and reacting require authentication.
+[![GitHub Actions](https://github.com/ReyA44/thesis-hub/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/ReyA44/thesis-hub/actions/workflows/ci.yml)
 
-## Implemented MVP
+ThesisHub is a full-stack, **local-first investment discussion app**. Instead of posting a ticker and a prediction, members publish structured investment arguments with a conviction level, supporting reasoning, risks and conditions that could invalidate the idea. Others can react, discuss and revisit the thesis alongside market context.
 
-- Registration/login with bcrypt password hashes, short-lived JWTs and author-only updates
-- Create, edit and delete investment theses with optional horizon, catalysts, risks, strategy, invalidation criteria and counter-thesis
-- Multi-ticker posts; first ticker is primary for charts and price targets
-- Market quote from Yahoo Finance (cached for 24 hours), optional price-at-publication snapshot, and lazy-loaded TradingView YTD/1Y charts
-- Five mutually exclusive sentiment reactions
-- One editable reply per user per thesis, with publicly visible reply revision history
-- Public feed with ticker/company and author search; conviction, sentiment and age filters; newest/oldest/popular/discussed sorting
-- Request IDs, JSON access logs, input validation, rate limits, and automated unit/integration checks
+**Status:** Functional educational MVP · **Hosting:** Local only; no public demo URL yet · **Brokerage integration:** None
 
-## Tech stack
+## What you can do
 
-| Layer | Technology | Purpose |
+- **Publish and manage theses** — Title, 1–10 tickers, required conviction, and optional price target, horizon, catalysts, risks, strategy and counter-thesis. Only the author can edit or delete a post.
+- **Explore the public feed** — Search by ticker/company or author; filter by conviction, sentiment and age; sort by newest, oldest, popular or discussed.
+- **Discuss ideas** — Five sentiment reactions and one editable text reply per user per post, with publicly visible reply edit history.
+- **Review market context** — Last available price through an unofficial Yahoo Finance integration, optional publication-price snapshot and performance comparison, and a TradingView chart that loads only when opened.
+
+Guests can read. Registering and signing in is required to publish or interact.
+
+## How it's built
+
+```mermaid
+flowchart LR
+    Browser["React + Vite"] <-->|"HTTP / JSON"| API["Node.js + Express"]
+    API <-->|"Prisma"| DB[("PostgreSQL")]
+    API -->|"Stock quotes"| Yahoo["Yahoo Finance"]
+    Browser -->|"Lazy chart embed"| TV["TradingView"]
+```
+
+| Part | Technology | Why it is here |
 |---|---|---|
-| Frontend | React 19, Vite | Forms, feed and interactive UI |
-| API | Node.js, Express 5 | REST endpoints and validation |
-| Database | PostgreSQL 17, Prisma 6 | Relational persistence and migrations |
-| Authentication | bcrypt, JWT | Password hashing and signed session tokens |
-| External services | yahoo-finance2, TradingView embed | Quotes and stock charts |
-| Tooling | Docker Compose, GitHub Actions, Git | Local database and quality checks |
+| Frontend | React 19, Vite, plain CSS | Components, forms and feed interactions without a UI framework |
+| Backend | Node.js, Express 5 | REST API, validation, authentication and authorization |
+| Database | PostgreSQL 17, Prisma 6 | Related records, constraints, migrations and transactional edits |
+| Authentication | bcrypt, JWT | Password hashes and authenticated API requests |
+| External market services | yahoo-finance2, TradingView widget | Quote context and embedded charts |
+| Verification | Node built-in test runner, GitHub Actions | Unit tests, real HTTP/PostgreSQL integration tests, frontend lint and build |
+
+### Engineering decisions worth exploring
+
+- **Permissions enforced server-side:** JWT authentication and ownership checks; database uniqueness enforces one reaction and one reply per user per thesis.
+- **Consistent history:** Reply edits store the previous text and update the current reply in one Prisma transaction.
+- **Market data is optional:** An unavailable quote does not block publication. A publication-price snapshot is captured only when a usable quote is available; changing the primary ticker invalidates the old snapshot.
+- **Small, explainable architecture:** One React client, one Express API, one PostgreSQL database; no microservices, state-management framework or additional UI library.
+- **Automated quality checks:** Every PR runs backend unit tests, HTTP tests against disposable PostgreSQL, ESLint and the frontend production build.
+
+For the detailed data model and request flows, see [architecture](docs/architecture.md).
 
 ## Run locally
 
-Prerequisites: **Node.js 22+**, npm, Docker and Docker Compose.
+**Requires:** Node.js 22+, npm, Docker and Docker Compose.
 
-1. Clone this repository, or update your local `master` with `git pull --ff-only origin master`.
-2. Copy the example environment file: `cp server/.env.example server/.env`. Edit **POSTGRES_PASSWORD**, **DATABASE_URL** (matching the password and port 5433) and **JWT_SECRET** (at least 24 random characters). Keep `.env` private.
-3. Start PostgreSQL in the repository root: `docker compose up -d`.
-4. From `server/`: `npm ci`, `npx prisma migrate deploy`, then `npm run dev`. The API runs at **http://localhost:3000**.
-5. In a second terminal, from `client/`: `npm ci`, then `npm run dev`. Open **http://localhost:5173**.
+1. Clone the repository and configure the backend:
+   ```bash
+   git clone https://github.com/ReyA44/thesis-hub.git
+   cd thesis-hub
+   cp server/.env.example server/.env
+   ```
+   Edit `server/.env`: use a strong random `JWT_SECRET`, change `POSTGRES_PASSWORD`, and update the password in `DATABASE_URL` to match. The local database uses port **5433**.
 
-The frontend defaults to `http://localhost:3000`; optional `client/.env` can set `VITE_API_URL`. The backend defaults `CLIENT_ORIGIN` to `http://localhost:5173`.
+2. Start PostgreSQL:
+   ```bash
+   docker compose up -d
+   ```
 
-To verify the backend: `http://localhost:3000/api/health` and `http://localhost:3000/api/health/db`. The second endpoint checks PostgreSQL connectivity.
+3. Start the API in one terminal:
+   ```bash
+   cd server
+   npm ci
+   npx prisma migrate deploy
+   npm run dev
+   ```
 
-## Tests
+4. Start the frontend in another terminal, from the repository root:
+   ```bash
+   cd client
+   npm ci
+   npm run dev
+   ```
 
-- From `server/`, run `npm test` for lightweight unit tests.
-- GitHub Actions additionally provisions a disposable PostgreSQL database, applies Prisma migrations, runs real HTTP integration tests (`npm run test:integration`), then frontend lint/build.
-- The integration suite **refuses to run without** `TEST_DATABASE_URL` pointing to a database whose name ends in `_test`. Never point it to development or production data.
-- From `client/`, run `npm run lint` and `npm run build`.
-- Complete the manual browser checklist in [docs/testing.md](docs/testing.md) before the presentation.
+Open **http://localhost:5173**. The API runs at **http://localhost:3000**. If the backend runs elsewhere, configure `VITE_API_URL` in `client/.env` (see `client/.env.example`). Never commit real secrets.
 
-## Documentation map
+## Tests and verification
 
-- [Requirements and scope](docs/requirements.md) — implemented vs deferred features
-- [Architecture and design decisions](docs/architecture.md) — data flow, ERD, key modules
-- [API reference](docs/api.md) — exact implemented endpoints and data shapes
-- [Testing guide](docs/testing.md) — automated coverage and browser walkthrough
-- [Presentation guide](docs/presentation-guide.md) — how to explain and demonstrate the system
-- [AI-assisted development](docs/ai-usage.md) — tools, boundaries, verification
-- [Development workflow](docs/workflow.md) — issues, branches and PRs
-- [Deployment notes](docs/deployment.md) — optional future work; **public hosting is not part of this submission**
+```bash
+# From server/
+npm test                   # Fast unit tests (no database)
 
-## Known MVP limitations
+# From client/
+npm run lint
+npm run build
+```
 
-- The feed shows a maximum of 25 posts. Popular sorting considers at most the latest 200 matching records; there is no pagination.
-- Tags, supporting-source entities, target-upside filtering and a dedicated post page are deferred.
-- A publication-price snapshot is stored only if a fresh quote is available. It uses the *last market observation*, not necessarily a trade at the exact posting second. Older posts are not backfilled.
-- JWTs live only in React memory; refreshing the browser logs the user out. Session tokens expire after two hours.
-- The in-memory quote cache and rate limits are appropriate to a single local app process.
-- Yahoo Finance is an unofficial data source; public distribution and commercial use require a separate licensing review.
+The [CI workflow](.github/workflows/ci.yml) additionally runs `npm run test:integration` against a **disposable PostgreSQL database named `*_test`** with deterministic, stubbed market quotes. Refer to [testing](docs/testing.md) for the integration setup and browser walkthrough. CI passing does **not** mean every UI interaction or third-party chart has been browser-tested.
 
-**Project goal:** a demonstrable, understandable, reliable *local MVP*, not a production brokerage or investment-advice application.
+## Documentation
+
+| Guide | Contents |
+|---|---|
+| [Architecture](docs/architecture.md) | Components, ER diagram, data flow and trade-offs |
+| [API](docs/api.md) | Endpoints, payloads, authentication and errors |
+| [Requirements](docs/requirements.md) | Delivered features and scope boundaries |
+| [Authorization matrix](docs/authorization-matrix.md) | Visitor vs signed-in permissions |
+| [Testing](docs/testing.md) | Automated tests and manual verification |
+| [Development history](docs/development-history.md) | Project milestones with real PR references |
+| [AI-assisted workflow](docs/ai-usage.md) | Development tools, decisions and verification boundaries |
+| [Roadmap / backlog](docs/backlog.md) | Sharing prerequisites and deferred product features |
+| [Licensing](docs/licensing.md) | Current code/license status and market-data usage considerations |
+
+An earlier [course presentation in Hebrew](docs/THESISHUB_FINAL_PRESENTATION_HE.md) is retained as a historical project artifact, not as the authoritative current documentation.
+
+## Scope and limitations
+
+This is a **portfolio/educational MVP**, not a brokerage, investment-advice service or production-ready social network.
+
+- Up to **25 posts** are returned per feed request; popularity ranks only the 200 newest matching candidates. There is no pagination yet.
+- JWTs are held in browser memory: refreshing the page signs the user out. No account recovery or email verification yet.
+- Price data may be delayed/unavailable. Yahoo Finance access is unofficial, and third-party licensing must be reviewed before public distribution.
+- Posting, rate limiting and caches were designed for a single local backend, not a multi-instance public deployment.
+- Public hosting, privacy/account-deletion workflows, moderation, backups and production monitoring are tracked in the [backlog](docs/backlog.md).
+- A repository-wide source license has not yet been selected. See [licensing notes](docs/licensing.md).
+
+**Investment posts are user opinions, not investment recommendations.**

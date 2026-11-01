@@ -1,6 +1,6 @@
 # ThesisHub — Deployment Notes (Deferred)
 
-**Current submission: local-only.** Public hosting, domain configuration and live production verification are deliberately postponed. Local startup instructions are in [README.md](../README.md).
+**Current implementation: local-only.** Public hosting, domain configuration and live production verification are deliberately postponed. See the [sharing prerequisites](backlog.md) and linked GitHub issues. Local startup instructions are in [README.md](../README.md).
 
 For a future public deployment, the minimum work is:
 
@@ -11,4 +11,4 @@ For a future public deployment, the minimum work is:
 5. Enable HTTPS, centralized persistent logs and shared-store rate limiting if scaling beyond one process.
 6. Re-run CI and an end-to-end browser acceptance test against the deployed environment.
 
-Do not set backend secrets as Vite environment variables. The backend's CORS setting is **not** a substitute for authentication and authorization. Public hosting is **not required** for the current local-first course demo.
+Do not set backend secrets as Vite environment variables. The backend's CORS setting is **not** a substitute for authentication and authorization. Public hosting is **not implemented**. Do not invite testers until the [sharing prerequisites](backlog.md) are addressed.
