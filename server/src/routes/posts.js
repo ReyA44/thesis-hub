@@ -500,6 +500,8 @@ postsRouter.patch("/:id", requireAuth, async (req, res) => {
      * Validate and replace the associated stocks
      * only when the request includes a stocks array.
      */
+    // Record the normalized new primary ticker for the publication-price invariant.
+    let nextPrimaryTicker = null;
     if ("stocks" in changes) {
         const stocks = changes.stocks;
 
@@ -554,6 +556,8 @@ postsRouter.patch("/:id", requireAuth, async (req, res) => {
             });
         }
 
+        nextPrimaryTicker = normalizedStocks[0].ticker;
+
         /**
          * Replace the existing PostStock relationships.
          *
@@ -591,7 +595,13 @@ postsRouter.patch("/:id", requireAuth, async (req, res) => {
          */
         const existingPost = await prisma.thesisPost.findUnique({
             where: { id: postId },
-            select: { authorId: true },
+            select: {
+                authorId: true,
+                stocks: {
+                    where: { position: 0 },
+                    select: { stock: { select: { ticker: true } } },
+                },
+            },
         });
 
         if (!existingPost) {
@@ -604,6 +614,15 @@ postsRouter.patch("/:id", requireAuth, async (req, res) => {
             return res.status(403).json({
                 error: "You cannot edit another user's thesis.",
             });
+        }
+
+        // The original publication quote belongs to the original primary ticker.
+        // Clear both fields when that ticker changes, including after reordering.
+        // Preserve them for edits that keep the same primary ticker.
+        if (nextPrimaryTicker !== null &&
+            nextPrimaryTicker !== existingPost.stocks[0]?.stock.ticker) {
+            updateData.priceAtPublication = null;
+            updateData.priceCapturedAt = null;
         }
 
         /**

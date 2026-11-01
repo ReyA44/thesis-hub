@@ -95,6 +95,30 @@ test("HTTP API: auth, posts, permission checks, sentiment, reply revisions, disc
         result = await api("PATCH", `/api/posts/${postId}`, { catalysts: "Earnings" }, token1);
         assert.equal(result.status, 200);
         assert.equal(result.data.post.catalysts, "Earnings");
+        assert.equal(Number(result.data.post.priceAtPublication), 100);
+
+        // Editing associated stocks without changing the primary ticker preserves the snapshot.
+        result = await api("PATCH", `/api/posts/${postId}`, {
+            stocks: [
+                { ticker: "MSFT", companyName: "Microsoft" },
+                { ticker: "AAPL", companyName: "Apple" },
+            ],
+        }, token1);
+        assert.equal(result.status, 200);
+        assert.equal(Number(result.data.post.priceAtPublication), 100);
+        assert.equal(result.data.post.priceCapturedAt, "2026-10-30T16:00:00.000Z");
+
+        // Reordering makes AAPL primary; the old MSFT publication snapshot must be removed.
+        result = await api("PATCH", `/api/posts/${postId}`, {
+            stocks: [
+                { ticker: "AAPL", companyName: "Apple" },
+                { ticker: "MSFT", companyName: "Microsoft" },
+            ],
+        }, token1);
+        assert.equal(result.status, 200);
+        assert.equal(result.data.post.stocks[0].stock.ticker, "AAPL");
+        assert.equal(result.data.post.priceAtPublication, null);
+        assert.equal(result.data.post.priceCapturedAt, null);
 
         assert.equal((await api("PUT", `/api/posts/${postId}/reaction`, { type: "ROCKET" }, token2)).status, 200);
         assert.equal((await api("PUT", `/api/posts/${postId}/reaction`, { type: "BULLISH" }, token2)).status, 200);
