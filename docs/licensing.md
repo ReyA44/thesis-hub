@@ -5,7 +5,7 @@ ThesisHub is a **local educational MVP**, not a licensed financial-data distribu
 ## ThesisHub source code
 
 - The repository does **not** currently have a root `LICENSE` file, so no repository-wide open-source license has been expressly granted.
-- `server/package.json` contains `"license": "ISC"`, but this package metadata should not be interpreted as an explicit license for the entire repository.
+- The backend package is marked `"private": true` and `"license": "UNLICENSED"` to avoid an accidental ISC license declaration or npm publication. This does not replace a future repository-wide licensing decision.
 - Before distributing or inviting reuse of the code, choose a license and add a root `LICENSE` file.
 
 ## Open-source dependencies
