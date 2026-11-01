@@ -153,3 +153,267 @@ button:focus-visible {
   margin-top: 24px;
   font-size: 14px;
 }
+
+
+/* =====================================================
+   ThesisHub — Thesis Publishing and Public Feed
+   ===================================================== */
+
+/* Keep the main application content readable. */
+.signed-in-panel,
+.new-post,
+.feed {
+  width: 100%;
+  max-width: 760px;
+}
+
+/* Logged-in account summary */
+.signed-in-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.signed-in-panel .account-email {
+  margin: 6px 0 0;
+}
+
+/* Reusable secondary button */
+.secondary-button {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  color: #334155;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+/* Publishing card */
+.new-post {
+  margin-top: 24px;
+  padding: 28px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.new-post h2 {
+  margin: 0 0 24px;
+}
+
+.thesis-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.thesis-form textarea,
+.thesis-form select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  background: white;
+  color: #172033;
+}
+
+.thesis-form textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.thesis-form textarea:focus-visible,
+.thesis-form select:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.field-hint {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Grouping and ordering stock tickers */
+.stocks-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.stocks-fieldset legend {
+  font-weight: 700;
+  padding: 0 8px;
+}
+
+.stocks-fieldset>.field-hint {
+  margin-bottom: 16px;
+}
+
+/* Each stock row has two inputs and a remove button. */
+.stock-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.stock-row label {
+  font-size: 14px;
+}
+
+.stock-row .secondary-button {
+  align-self: end;
+}
+
+.thesis-form .submit-button {
+  margin-top: 4px;
+}
+
+/* Public feed */
+.feed {
+  margin-top: 40px;
+}
+
+.feed h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.feed-subtitle {
+  color: #64748b;
+  margin: 8px 0 24px;
+}
+
+.empty-feed {
+  padding: 28px;
+  text-align: center;
+  background: white;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  color: #64748b;
+}
+
+/* Individual investment thesis card */
+.post-card {
+  margin-bottom: 20px;
+  padding: 26px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow-wrap: anywhere;
+}
+
+.post-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.post-topline strong {
+  color: #334155;
+}
+
+.post-title {
+  font-size: 21px;
+  line-height: 1.35;
+  margin: 16px 0;
+  color: #172033;
+}
+
+.conviction-label {
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 18px;
+}
+
+/* Stock ticker display */
+.post-stocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 0 0 18px;
+  list-style: none;
+}
+
+.post-stocks li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.post-stocks li strong {
+  color: #1d4ed8;
+}
+
+.primary-ticker {
+  color: #166534;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Preserve paragraph breaks from the author's thesis. */
+.post-description {
+  color: #334155;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  margin: 16px 0;
+}
+
+.post-target {
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 14px;
+}
+
+/* Mobile layout */
+@media (max-width: 650px) {
+  .app {
+    padding: 24px 14px;
+  }
+
+  .new-post,
+  .post-card {
+    padding: 18px;
+  }
+
+  .stock-row {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-row .secondary-button {
+    justify-self: start;
+  }
+
+  .signed-in-panel,
+  .post-topline {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

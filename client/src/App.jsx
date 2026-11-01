@@ -1,58 +1,76 @@
 
 /**
- * ThesisHub — Authentication UI
+ * ThesisHub — Main React Application
  *
- * Provides:
- * - Login and registration forms
- * - API communication
- * - Validation and error messages
- * - Authenticated account display
- * - Client-side logout
+ * Responsibilities:
+ * 1. Manage authentication and current user state.
+ * 2. Display registration and login forms for guests.
+ * 3. Display the publishing form for signed-in users.
+ * 4. Display the public feed for everyone.
+ * 5. Coordinate feed refreshes after publishing.
  */
 
 import { useEffect, useState } from "react";
 
-// Our existing Express backend.
+import ThesisForm from "./components/ThesisForm.jsx";
+import ThesisFeed from "./components/ThesisFeed.jsx";
+
+// Local Express API.
 const API_URL = "http://localhost:3000";
 
 function App() {
-  // Which form is displayed: "login" or "register".
+  // Which authentication form is displayed.
   const [mode, setMode] = useState("login");
 
-  // Controlled form inputs: React stores their values.
+  // Controlled authentication form fields.
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // The current session contains the user and JWT.
-  // It exists only in memory; refreshing logs the user out.
+  /**
+   * Authenticated user and JWT.
+   *
+   * Stored in memory only.
+   * Refreshing the page clears the session.
+   */
   const [session, setSession] = useState(null);
 
-  // Feedback displayed to the user.
+  // Authentication feedback.
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
-  const [apiStatus, setApiStatus] = useState("Checking backend...");
+
+  // Backend connectivity indicator.
+  const [apiStatus, setApiStatus] = useState(
+    "Checking backend..."
+  );
 
   /**
-   * Check the API connection when the component mounts.
+   * Incrementing refreshKey triggers a new GET /api/posts
+   * request inside ThesisFeed.
+   */
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  /**
+   * Check the Express API connection on page load.
    */
   useEffect(() => {
     const controller = new AbortController();
 
     async function checkBackend() {
       try {
-        const response = await fetch(`${API_URL}/api/health`, {
-          signal: controller.signal,
-        });
+        const response = await fetch(
+          `${API_URL}/api/health`,
+          { signal: controller.signal }
+        );
 
         if (!response.ok) {
           throw new Error("Backend unavailable");
         }
 
         setApiStatus("Backend connected");
+
       } catch {
-        // Ignore requests cancelled during React cleanup.
         if (!controller.signal.aborted) {
           setApiStatus("Backend unavailable");
         }
@@ -65,7 +83,7 @@ function App() {
   }, []);
 
   /**
-   * Change between registration and login.
+   * Switch between the Login and Register forms.
    */
   function changeMode(nextMode) {
     setMode(nextMode);
@@ -75,10 +93,7 @@ function App() {
   }
 
   /**
-   * Submit either the registration or login form.
-   *
-   * event.preventDefault() prevents the browser from
-   * reloading the page when the form is submitted.
+   * Submit a login or registration request.
    */
   async function handleSubmit(event) {
     event.preventDefault();
@@ -91,7 +106,6 @@ function App() {
       const endpoint =
         mode === "register" ? "register" : "login";
 
-      // Registration needs a username; login does not.
       const payload =
         mode === "register"
           ? { username, email, password }
@@ -110,19 +124,26 @@ function App() {
 
       const data = await response.json();
 
-      // Display the backend's validation error.
       if (!response.ok) {
-        throw new Error(data.error || "Request failed.");
+        throw new Error(
+          data.error || "Authentication request failed."
+        );
       }
 
       if (mode === "register") {
-        // After registration, show the login form.
+        // Registration succeeds but doesn't log in
+        // automatically in our current backend.
         changeMode("login");
         setNotice("Account created! Please sign in.");
         return;
       }
 
-      // Verify our new token using a protected endpoint.
+      /**
+       * Login returns a JWT.
+       *
+       * Verify it by requesting the protected
+       * GET /api/auth/me endpoint.
+       */
       const profileResponse = await fetch(
         `${API_URL}/api/auth/me`,
         {
@@ -133,37 +154,49 @@ function App() {
       );
 
       if (!profileResponse.ok) {
-        throw new Error("Could not verify your session.");
+        throw new Error(
+          "Could not verify your session."
+        );
       }
 
       const profile = await profileResponse.json();
 
-      // Save the authenticated session in React state.
+      // Save the logged-in user and JWT in React state.
       setSession({
         token: data.token,
         user: profile.user,
       });
 
-      // Don't keep the submitted password in form state.
       setPassword("");
+
     } catch (caughtError) {
-      setError(caughtError.message);
+      setError(
+        caughtError.message || "Authentication failed."
+      );
+
     } finally {
-      // Re-enable the form whether the request succeeded
-      // or failed.
       setLoading(false);
     }
   }
 
   /**
-   * Logout means discarding the client-side token.
-   * Server-side JWT revocation is outside this MVP.
+   * Logout discards our stored JWT and user information.
    */
   function handleLogout() {
     setSession(null);
     setPassword("");
     setError("");
     setNotice("You have signed out.");
+  }
+
+  /**
+   * Called by ThesisForm after a successful POST.
+   *
+   * React updates refreshKey, triggering ThesisFeed
+   * to retrieve the latest posts.
+   */
+  function handleThesisPublished() {
+    setRefreshKey((previous) => previous + 1);
   }
 
   return (
@@ -173,130 +206,154 @@ function App() {
         <p>Share ideas. Challenge assumptions.</p>
       </header>
 
-      <section className="auth-card">
-        {session ? (
-          // Authenticated screen.
-          <>
-            <h2>Welcome, {session.user.username}!</h2>
+      {/* Guest or authenticated account information. */}
+      {session ? (
+        <section className="signed-in-panel">
+          <div>
+            <strong>
+              Welcome, {session.user.username}!
+            </strong>
 
-            <p>You are successfully authenticated.</p>
             <p className="account-email">
               {session.user.email}
             </p>
+          </div>
 
-            <button onClick={handleLogout}>
-              Log out
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={handleLogout}
+          >
+            Log out
+          </button>
+        </section>
+      ) : (
+        <section className="auth-card">
+          <div className="auth-tabs">
+            <button
+              type="button"
+              className={mode === "login" ? "active" : ""}
+              aria-pressed={mode === "login"}
+              onClick={() => changeMode("login")}
+            >
+              Log in
             </button>
-          </>
-        ) : (
-          // Registration / login screen.
-          <>
-            <div className="auth-tabs">
-              <button
-                type="button"
-                className={mode === "login" ? "active" : ""}
-                aria-pressed={mode === "login"}
-                onClick={() => changeMode("login")}
-              >
-                Log in
-              </button>
 
-              <button
-                type="button"
-                className={mode === "register" ? "active" : ""}
-                aria-pressed={mode === "register"}
-                onClick={() => changeMode("register")}
-              >
-                Register
-              </button>
-            </div>
+            <button
+              type="button"
+              className={mode === "register" ? "active" : ""}
+              aria-pressed={mode === "register"}
+              onClick={() => changeMode("register")}
+            >
+              Register
+            </button>
+          </div>
 
-            <h2>
-              {mode === "login"
-                ? "Welcome back"
-                : "Create your account"}
-            </h2>
+          <h2>
+            {mode === "login"
+              ? "Welcome back"
+              : "Create your account"}
+          </h2>
 
-            <form onSubmit={handleSubmit}>
-              {mode === "register" && (
-                <label htmlFor="username">
-                  Username
-                  <input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(event) =>
-                      setUsername(event.target.value)
-                    }
-                    autoComplete="username"
-                    minLength={3}
-                    maxLength={30}
-                    pattern="[A-Za-z0-9_]+"
-                    required
-                  />
-                </label>
-              )}
+          <form onSubmit={handleSubmit}>
+            {mode === "register" && (
+              <label htmlFor="username">
+                Username
 
-              <label htmlFor="email">
-                Email
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
+                  id="username"
+                  type="text"
+                  value={username}
                   onChange={(event) =>
-                    setEmail(event.target.value)
+                    setUsername(event.target.value)
                   }
-                  autoComplete="email"
+                  autoComplete="username"
+                  minLength={3}
+                  maxLength={30}
+                  pattern="[A-Za-z0-9_]+"
                   required
                 />
               </label>
+            )}
 
-              <label htmlFor="password">
-                Password
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(event) =>
-                    setPassword(event.target.value)
-                  }
-                  autoComplete={
-                    mode === "register"
-                      ? "new-password"
-                      : "current-password"
-                  }
-                  minLength={mode === "register" ? 12 : undefined}
-                  required
-                />
-              </label>
+            <label htmlFor="email">
+              Email
 
-              {error && (
-                <p className="message error" role="alert">
-                  {error}
-                </p>
-              )}
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
+                autoComplete="email"
+                required
+              />
+            </label>
 
-              {notice && (
-                <p className="message success" role="status">
-                  {notice}
-                </p>
-              )}
+            <label htmlFor="password">
+              Password
 
-              <button
-                type="submit"
-                className="submit-button"
-                disabled={loading}
-              >
-                {loading
-                  ? "Please wait..."
-                  : mode === "login"
-                    ? "Log in"
-                    : "Create account"}
-              </button>
-            </form>
-          </>
-        )}
-      </section>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(event) =>
+                  setPassword(event.target.value)
+                }
+                autoComplete={
+                  mode === "register"
+                    ? "new-password"
+                    : "current-password"
+                }
+                minLength={
+                  mode === "register" ? 12 : undefined
+                }
+                required
+              />
+            </label>
+
+            {error && (
+              <p className="message error" role="alert">
+                {error}
+              </p>
+            )}
+
+            {notice && (
+              <p className="message success" role="status">
+                {notice}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="submit-button"
+              disabled={loading}
+            >
+              {loading
+                ? "Please wait..."
+                : mode === "login"
+                  ? "Log in"
+                  : "Create account"}
+            </button>
+          </form>
+        </section>
+      )}
+
+      {/* Only authenticated users can see the post form. */}
+      {session && (
+        <ThesisForm
+          apiUrl={API_URL}
+          token={session.token}
+          onPublished={handleThesisPublished}
+        />
+      )}
+
+      {/* The feed is PUBLIC, including for logged-out users. */}
+      <ThesisFeed
+        apiUrl={API_URL}
+        refreshKey={refreshKey}
+      />
 
       <footer className="app-footer">
         {apiStatus}

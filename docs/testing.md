@@ -121,4 +121,41 @@ Persistent sessions are deferred to a future milestone.
 
 Tests use the development PostgreSQL database.
 Automated integration tests are deferred.
-```
+
+
+## React Thesis Publishing and Public Feed — Manual Tests
+
+### Publishing
+
+- [x] Authenticated user can publish a valid thesis
+- [x] Required title, conviction, and stock fields are enforced
+- [x] Multiple stocks can be added and removed
+- [x] Duplicate tickers are rejected
+- [x] Primary ticker order is preserved
+- [x] Optional full thesis and price target are saved
+
+### Public Feed
+
+- [x] Visitors can browse posts without logging in
+- [x] Newly published posts appear without a page refresh
+- [x] Author, title, conviction, and stock tickers display
+- [x] Optional details display correctly
+- [x] Logged-out users cannot see the publishing form
+- [x] Reloading the browser preserves published database records
+
+### Regression Testing
+
+- [x] Registration still works
+- [x] Login still works
+- [x] Logout still works
+- [x] Backend health checks still work
+
+### Technical Verification
+
+- [x] npm run lint passes
+- [x] npm run build passes
+
+Testing method: manual browser testing against the
+local Express API and development PostgreSQL database.
+
+Automated integration tests remain future work.
