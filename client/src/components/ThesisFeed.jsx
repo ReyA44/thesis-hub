@@ -13,6 +13,8 @@
  * Hiding controls is only a UI convenience.
  * The Express backend must enforce authorization.
  */
+import ReplySection from "./ReplySection.jsx";
+import ReactionBar from "./ReactionBar.jsx";
 import MarketPanel from "./MarketPanel.jsx";
 import { useEffect, useState } from "react";
 import ThesisForm from "./ThesisForm.jsx";
@@ -354,6 +356,16 @@ export default function ThesisFeed({
                                 priceTarget={post.priceTarget}
                             />
                         )}
+                        <ReactionBar
+                            apiUrl={apiUrl}
+                            postId={post.id}
+                            token={session?.token}
+                        />
+                        <ReplySection
+                            apiUrl={apiUrl}
+                            postId={post.id}
+                            session={session}
+                        />
                     </article>
                 );
             })}

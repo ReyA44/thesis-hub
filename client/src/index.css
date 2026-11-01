@@ -508,3 +508,120 @@ button:focus-visible {
 .market-attribution a {
   color: inherit;
 }
+
+
+/* Community sentiment reactions */
+
+.reaction-bar {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d1d5db;
+}
+
+.reaction-heading {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.reaction-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.reaction-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: auto;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.reaction-button.selected {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.reaction-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.reaction-button strong {
+  font-size: 0.85rem;
+}
+
+/* Investment thesis discussions */
+
+.reply-section {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d1d5db;
+}
+
+.reply-section h4 {
+  margin-bottom: 0.75rem;
+}
+
+.reply-card {
+  margin-bottom: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.6rem;
+}
+
+.reply-content {
+  white-space: pre-wrap;
+  margin: 0.75rem 0;
+}
+
+.reply-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.reply-actions button,
+.reply-history button {
+  width: auto;
+}
+
+.reply-history {
+  margin: 0.75rem 0;
+}
+
+.reply-history ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+}
+
+.reply-history li {
+  margin-bottom: 0.65rem;
+}
+
+.reply-history li p {
+  white-space: pre-wrap;
+}
+
+.reply-history small {
+  color: #64748b;
+}
+
+.reply-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.reply-form button {
+  width: fit-content;
+}

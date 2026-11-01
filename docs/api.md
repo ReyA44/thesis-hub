@@ -261,3 +261,102 @@ not expose operational details publicly in a production app.
 `upsidePercent = ((priceTarget / price) - 1) * 100`
 
 A negative result indicates downside.
+
+
+## Reactions API
+
+### GET /api/posts/:postId/reactions
+
+Public endpoint. Returns reaction counts for all five types,
+total reactions, and the current user's selection when an
+optional valid JWT is provided.
+
+Reaction types:
+- ROCKET
+- BULLISH
+- NEUTRAL
+- BEARISH
+- BAG_HOLDER
+
+### PUT /api/posts/:postId/reaction
+
+Requires JWT.
+
+Request body:
+
+```json
+{
+  "type": "BULLISH"
+}
+```
+
+Creates or replaces the current user's reaction.
+Returns 200 with the saved reaction.
+
+### DELETE /api/posts/:postId/reaction
+
+Requires JWT.
+
+Removes the current user's reaction.
+Returns 204 with no body.
+
+A database uniqueness constraint enforces one reaction per
+user per thesis.
+
+## Replies API
+
+### GET /api/posts/:postId/replies
+
+Public endpoint.
+
+Returns replies with author information and previous versions
+in chronological order.
+
+### POST /api/posts/:postId/reply
+
+Requires JWT.
+
+Request body:
+
+```json
+{
+  "content": "I disagree because the valuation is too high."
+}
+```
+
+Creates a reply. Content must contain 1-3000 characters.
+
+Returns:
+- 201 — Reply created
+- 400 — Invalid content
+- 401 — Authentication required
+- 404 — Thesis not found
+- 409 — User already has a reply on this thesis
+
+### PATCH /api/posts/:postId/reply
+
+Requires JWT.
+
+Updates the current user's reply and preserves the previous
+content in ReplyRevision.
+
+Returns 200 with the updated reply and revisions.
+
+### DELETE /api/posts/:postId/reply
+
+Requires JWT.
+
+Permanently deletes the current user's reply and its revision
+history.
+
+Returns 204 on success, 404 if no reply exists.
+
+## Interaction Rules
+
+- One reaction per user per thesis.
+- One reply per user per thesis.
+- Users can change or remove their reaction.
+- Users can edit or delete only their own reply.
+- Existing reply edit histories are publicly visible.
+- Authorization is enforced by the backend.
+

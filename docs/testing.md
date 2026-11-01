@@ -232,3 +232,39 @@ Yahoo Finance is accessed through the unofficial
 yahoo-finance2 library. TradingView provides embedded
 charts. Licensing restrictions are documented in
 docs/architecture.md.
+
+
+## Milestone 9 — Reactions and Replies
+
+### Reactions
+
+- [x] Guests can view reaction counts.
+- [x] All five sentiment reactions are displayed.
+- [x] Authenticated users can add reactions.
+- [x] Changing a reaction replaces the previous selection.
+- [x] Clicking the selected reaction removes it.
+- [x] The selected reaction is restored after login.
+- [x] Reaction counts persist after browser refresh.
+- [x] Invalid reaction types are rejected.
+- [x] Unauthenticated reaction mutations return 401.
+
+### Replies
+
+- [x] Guests can read replies.
+- [x] Authenticated users can create a reply.
+- [x] A second reply from the same user returns 409.
+- [x] Users can edit their own reply.
+- [x] Previous reply content is preserved in revision history.
+- [x] Public users can expand and view edit history.
+- [x] Editing can be cancelled without saving.
+- [x] Users cannot manage another user's reply.
+- [x] Deleting a reply requires confirmation.
+- [x] Deletion removes the reply and its revisions.
+- [x] Replies persist after browser refresh.
+
+### Verification
+
+- [x] npm run lint
+- [x] npm run build
+- [x] Existing publishing and market data still work.
+
