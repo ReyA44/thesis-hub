@@ -8,6 +8,14 @@ ThesisHub is a full-stack, **local-first investment discussion app**. Instead of
 
 **Status:** Functional educational MVP · **Hosting:** Local only; no public demo URL yet · **Brokerage integration:** None
 
+## Early UI concept
+
+<p align="center">
+  <img src="assets/poc-v0.1.png" alt="ThesisHub POC v0.1 — early concept of the investment-thesis interface" width="900" />
+</p>
+
+*Original proof of concept (POC v0.1), included to show the product direction. This is a design mockup, not a screenshot of the current running application.*
+
 ## What you can do
 
 - **Publish and manage theses** — Title, 1–10 tickers, required conviction, and optional price target, horizon, catalysts, risks, strategy and counter-thesis. Only the author can edit or delete a post.
